@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objs as go
 import dash
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
@@ -31,11 +32,15 @@ def preprocess_data(df):
     # Handle missing data (exclude columns with > 50% missing data)
     df = df.dropna(thresh=len(df) * 0.5, axis=1)
     
+    # Check if the PatientID column exists, if not, create it
+    if 'PatientID' not in df.columns:
+        df['PatientID'] = range(len(df))
+    
     # Retrieve the actual cryptic column names from the dataset
     cryptic_column_names = df.columns.tolist()
     
     # Desired readable column names
-    readable_column_names = ['LCORE', 'LSURF', 'LO2', 'LBP', 'SURF_STBL', 'CORE_Stbl', 'BPS_STBL', 'COMFOR', 'DEC']
+    readable_column_names = ['LCORE', 'LSURF', 'LO2', 'LBP', 'SURF_STBL', 'CORE_Stbl', 'BPS_STBL', 'COMFOR', 'DEC', 'PatientID'][:len(cryptic_column_names)]
     
     # Ensure the lengths match
     if len(cryptic_column_names) != len(readable_column_names):
@@ -57,7 +62,7 @@ def generate_synthetic_data(df, method='sample', n_samples=1000):
     if method == 'sample':
         synthetic_data = df.sample(n=n_samples, replace=True)
     elif method == 'ctgan':
-        ctgan = CTGAN(epochs=300)  # You can adjust the number of epochs as needed
+        ctgan = CTGAN(epochs=10)  # You can adjust the number of epochs as needed
         discrete_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
         ctgan.fit(df, discrete_columns)
         synthetic_data = ctgan.sample(n_samples)
@@ -94,15 +99,17 @@ def find_available_port(start_port=8050, max_tries=100):
             port += 1
     raise RuntimeError("No available ports found")
 
-# Step 3: Dashboard Design and Implementation
-
-# Load data and preprocess
+# Step 3: Load data and preprocess globally
 data_url = 'https://query.data.world/s/u33lunmprotq2ubl7nhhvg52txbjxg?dws=00000'  # Update this URL to the actual dataset URL
 try:
     real_data, columns = preprocess_data(load_data(data_url))
+    patient_ids = real_data['PatientID'].unique() if 'PatientID' in real_data.columns else []
 except ValueError as e:
     print(e)
     columns = []
+    patient_ids = []
+
+# Step 4: Dashboard Design and Implementation
 
 # Initialize Dash app
 app = dash.Dash(__name__)
@@ -181,6 +188,20 @@ app.layout = html.Div([
             placeholder="Select statistical test"
         ),
         html.Div(id='statistical-test-results')
+    ]),
+    html.Div([
+        html.H3('Compare Individual Patient with Group'),
+        dcc.Dropdown(
+            id='patient-selector',
+            options=[{'label': patient_id, 'value': patient_id} for patient_id in patient_ids],
+            placeholder="Select patient"
+        ),
+        dcc.Dropdown(
+            id='variable-selector',
+            options=[{'label': var, 'value': var} for var in columns if var != 'PatientID'],
+            placeholder="Select variable"
+        ),
+        dcc.Graph(id='individual-comparison')
     ])
 ])
 
@@ -302,6 +323,28 @@ def update_graphs(x_var, y_var, plot_type, synthetic_file, stat_test):
         test_result = "Please select a statistical test and a single variable for comparison."
 
     return fig_real, real_summary_stats_data, real_summary_stats_columns, fig_synthetic, synthetic_summary_stats_data, synthetic_summary_stats_columns, test_result
+
+# Callback to update individual patient comparison
+@app.callback(
+    Output('individual-comparison', 'figure'),
+    [Input('patient-selector', 'value'),
+     Input('variable-selector', 'value')]
+)
+def update_individual_comparison(patient_id, variable):
+    if not patient_id or not variable:
+        raise PreventUpdate
+
+    # Load and preprocess real data
+    df_real, _ = preprocess_data(load_data(data_url))
+
+    # Get the patient's value
+    patient_value = df_real[df_real['PatientID'] == patient_id][variable].values[0]
+
+    # Create boxplot
+    fig = px.box(df_real, y=variable, title=f'{variable} Comparison for Patient {patient_id}')
+    fig.add_trace(go.Scatter(x=[f'PatientID = {patient_id}'], y=[patient_value], mode='markers', marker=dict(color='red', size=10), name=f'PatientID = {patient_id}'))
+
+    return fig
 
 # Step 4: Run the Dash Application
 
