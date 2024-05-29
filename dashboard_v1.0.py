@@ -101,6 +101,8 @@ def find_available_port(start_port=8050, max_tries=100):
     raise RuntimeError("No available ports found")
 
 # Step 3: Load data and preprocess globally
+#Other datasets at: https://data.world/search?context=community&q=cardiac+surgery+data+&type=resources
+#
 data_url = 'https://query.data.world/s/u33lunmprotq2ubl7nhhvg52txbjxg?dws=00000'  # Update this URL to the actual dataset URL
 try:
     real_data, columns = preprocess_data(load_data(data_url))
