@@ -39,7 +39,7 @@ def preprocess_data(df):
     # Retrieve the actual cryptic column names from the dataset
     cryptic_column_names = df.columns.tolist()
     
-    # Desired readable column names
+    # Desired readable column names #Hard coded
     readable_column_names = ['LCORE', 'LSURF', 'LO2', 'LBP', 'SURF_STBL', 'CORE_Stbl', 'BPS_STBL', 'COMFOR', 'DEC', 'PatientID'][:len(cryptic_column_names)]
     
     # Ensure the lengths match
