@@ -3,6 +3,7 @@ including loading and saving the data.
 """
 
 import uuid
+import numpy as np
 import pandas as pd
 
 class PREPROC:
@@ -51,12 +52,19 @@ class PREPROC:
         return temp_data
 
 
-    def procedure_duration(self):
-        '''Due to poor data insertion in the source data, sometimes procedure times are missing.
-        Goal is to remove the impossible date-times.
-        :param: still figuring it out: 
+    def fix_procedure_duration(self):
         '''
-        
+        Due to poor data insertion in the source data, sometimes procedure times are missing.
+        Goal is to remove the impossible date-times.
+        :returns: updated data: three columns are used for creating most accurate procedure_duration,
+                                unused columns are droped
+        '''
+        df = self.data
+        df['procedure_duration'] = df[['time_OR',
+                                       'procedure_duration',
+                                       'procedure_duration_fix']].replace(0, np.nan).abs().min(axis=1)
+
+        self.data = df.drop(columns=['procedure_duration_fix', 'time_OR'])
 
 
 
@@ -66,3 +74,4 @@ if __name__ == '__main__':
     data.read_data('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/raw/20240529_all_procedures.rpt')
     data.pseudonymize('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/config/pid_keyfile.pkl', 'subject_id')
     data.pseudonymize('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/config/surgery_keyfile.pkl', 'surgery_id')
+    data.fix_procedure_duration()
