@@ -1,7 +1,9 @@
+'''Main python code for data pre-processing'''
+
 from scripts.preprocessing import PREPROC
 
-def pre_processing(src_data): 
-    '''another string, pylinting sucks'''
+def pre_processing(src_data):
+    '''another string, pylinting sucks sometimes'''
     data = PREPROC()
     data.read_data(src_data)
     return data
