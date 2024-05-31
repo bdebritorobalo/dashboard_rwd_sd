@@ -14,6 +14,8 @@ class PREPROC:
                         'procedure_duration', 'procedure_duration_fix','age_procedure', 'status_sternum',
                         'ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']
         self.column_numbers=[0,1,5,8,9,10,11,12,15,16,17,18,19,20,21,22]
+        self.removable_procedures=['989999', '339121', '339130B', '332486A', '339132', '332429',
+                                   '335512C', '332281A','332280A','332215D','333180B']
         self.data = None
 
     def read_data(self, src_path):
@@ -52,6 +54,33 @@ class PREPROC:
         return temp_data
 
 
+    def remove_procedures(self):
+        '''
+        This function will remove a preset list of procedures(for example 'procedure delayed')'''
+        df = self.data
+        procedures =self.removable_procedures
+
+        #Plain procedures to remove
+        for proc in procedures:
+            condition0 = df['procedure_code'] == proc
+            df = df[~condition0]
+
+        #multiple conditions (manually added)
+        condition1 = df['time_OR'] == 0
+        condition2 = df['procedure_code'] == '332553A'
+        condition = condition1 & condition2
+        df = df[~condition]
+
+        # Remove 'rare' procedures
+        value_counts = df['procedure_code'].value_counts()
+        df_new = df[df['procedure_code'].isin(value_counts[value_counts > 5].index)]
+
+        # Remove 'rare' post-op diagnoses
+        value_counts = df_new['postop_diagnosis_code'].value_counts()
+        df_filtered = df_new[df_new['postop_diagnosis_code'].isin(value_counts[value_counts > 5].index)]
+
+        self.data = df_filtered
+
     def fix_procedure_duration(self):
         '''
         Due to poor data insertion in the source data, sometimes procedure times are missing.
@@ -60,11 +89,19 @@ class PREPROC:
                                 unused columns are droped
         '''
         df = self.data
+        condition1 = df['time_OR']> 600
+        condition2 = df['procedure_duration'] <= 0
+        condition3 = df['procedure_duration_fix'] > 500
+
+        condition = condition1 & condition2 & condition3
+
+        df = df[~condition]
+
         df['procedure_duration'] = df[['time_OR',
                                        'procedure_duration',
                                        'procedure_duration_fix']].replace(0, np.nan).abs().min(axis=1)
 
-        self.data = df.drop(columns=['procedure_duration_fix', 'time_OR'])
+        self.data = df #df.drop(columns=['procedure_duration_fix', 'time_OR']).reset_index()
 
 
 
@@ -74,4 +111,6 @@ if __name__ == '__main__':
     data.read_data('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/raw/20240529_all_procedures.rpt')
     data.pseudonymize('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/config/pid_keyfile.pkl', 'subject_id')
     data.pseudonymize('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/config/surgery_keyfile.pkl', 'surgery_id')
+
+    data.remove_procedures()
     data.fix_procedure_duration()
