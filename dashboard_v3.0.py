@@ -41,7 +41,7 @@ def preprocess_data(df):
 
 # Step 2: Generate and Save Synthetic Data
 
-def generate_synthetic_data(df, method='sample', n_samples=1000):
+def generate_synthetic_data(df, method='sample', n_samples=500):
     """Generate synthetic data using the specified method."""
     if method == 'sample':
         synthetic_data = df.sample(n=n_samples, replace=True)
