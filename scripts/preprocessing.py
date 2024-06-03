@@ -15,8 +15,12 @@ class PREPROC:
                         'ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']                     #16
         self.column_numbers=[0,1,5,8,9,10,11,12,15,16,17,18,19,20,21,22]
         self.removable_procedures=['989999', '339121', '339130B', '332486A', '339132', '332429',
-                                   '335512C', '332281A','332280A','333180B','332215D']
+                                   '335512C', '332281A','332280A','333180B','332215D']  #332694
         self.data = None
+        self.netto_headers = ['surgery_id', 'subject_id', 'postop_diagnosis_code',                #4
+                        'postop_diagnosis_text', 'procedure_code', 'procedure_text', 'main_procedure',      #8
+                        'procedure_duration','age_procedure', 'status_sternum',                             #12
+                        'ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']                     #16
 
     def read_data(self, src_path):
         '''
@@ -108,13 +112,35 @@ class PREPROC:
         condition = condition1 & condition2 & condition3
 
         df = df[~condition]
+        df.loc[:, 'procedure_duration'] = df[['time_OR',
+                                              'procedure_duration',
+                                              'procedure_duration_fix']].replace(0, np.nan).abs().min(axis=1)
 
-        df['procedure_duration'] = df[['time_OR',
-                                       'procedure_duration',
-                                       'procedure_duration_fix']].replace(0, np.nan).abs().min(axis=1)
+
+        # df_temp = df[['time_OR','procedure_duration', 'procedure_duration_fix']].replace(0, np.nan)
+        # df_temp[['time_OR','procedure_duration', 'procedure_duration_fix']] = df_temp[['time_OR','procedure_duration', 'procedure_duration_fix']].abs()
+        # df.loc[:, 'procedure_duration'] = df_temp[['time_OR','procedure_duration', 'procedure_duration_fix']].min(axis=1)
 
         self.data = df #df.drop(columns=['procedure_duration_fix', 'time_OR']).reset_index()
 
+    def replace_nans(self):
+        '''In some columns, NANs should be 0, this function changes these columns.
+        '''
+        df = self.data
+
+        columns = ['ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']
+
+        df[columns] = df[columns].fillna(0)
+
+        self.data = df
+
+
+    def save_processed_data(self, tgt_dir):
+        '''This funcion is dedicated to storing the dataframe that is stored inside the class.
+        :param: tgt_dir: Path to store the dataframe. Should be a CSV file-extension.
+        '''
+        df = self.data
+        df.to_csv(tgt_dir, columns=self.netto_headers, index=False)
 
 
 if __name__ == '__main__':
@@ -127,3 +153,5 @@ if __name__ == '__main__':
 
     data.remove_procedures()
     data.fix_procedure_duration()
+    data.replace_nans()
+    data.save_processed_data('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/processed/20240603_data_processed.csv')
