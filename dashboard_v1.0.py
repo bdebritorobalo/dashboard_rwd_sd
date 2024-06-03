@@ -14,6 +14,8 @@ from flask import send_file
 from dash.exceptions import PreventUpdate
 from scipy.stats import ks_2samp, ttest_ind, chi2_contingency
 from ctgan import CTGAN
+import base64
+import io
 
 # Step 1: Load and Preprocess Data
 
@@ -27,6 +29,17 @@ def load_data(url):
     except Exception as e:
         raise ValueError(f"Error loading data from {url}: {e}")
 
+def load_data_local(file_path):
+    """Load data from a local file."""
+    try:
+        df = pd.read_csv(file_path)
+        if df.empty:
+            raise ValueError("The dataset is empty.")
+        return df
+    except Exception as e:
+        raise ValueError(f"Error loading data from {file_path}: {e}")
+    
+    
 def preprocess_data(df):
     """Preprocess the data (e.g., handle missing values and rename columns)."""
     # Handle missing data (exclude columns with > 50% missing data)
@@ -167,6 +180,27 @@ app.layout = html.Div([
     ),
     html.Button('Download Selected Synthetic Data', id='download-synthetic-button', n_clicks=0),
     dcc.Download(id='download-synthetic-data'),
+        html.Div([
+        html.Label('Upload Local Data:'),
+        dcc.Upload(
+            id='upload-data',
+            children=html.Div([
+                'Drag and Drop or ',
+                html.A('Select Files')
+            ]),
+            style={
+                'width': '100%',
+                'height': '60px',
+                'lineHeight': '60px',
+                'borderWidth': '1px',
+                'borderStyle': 'dashed',
+                'borderRadius': '5px',
+                'textAlign': 'center',
+                'margin': '10px'
+            },
+            multiple=False  # Allow only a single file to be uploaded
+        ),
+    ], style={'width': '32%', 'display': 'inline-block'}),
     html.Div([
         html.Div([
             html.H3('Real Data'),
@@ -208,7 +242,8 @@ app.layout = html.Div([
     ])
 ])
 
-# Combined callback to generate, save, and clear synthetic data
+
+# Combined callback to generate, save, and clear synthetic data 
 @app.callback(
     Output('synthetic-selector', 'options'),
     [Input('generate-synthetic-button', 'n_clicks'),
@@ -216,7 +251,7 @@ app.layout = html.Div([
     [State('x-axis-selector', 'value'),
      State('generation-method-selector', 'value')]
 )
-def manage_synthetic_data(generate_n_clicks, clear_n_clicks, selected_vars, generation_method):
+def manage_synthetic_data(generate_n_clicks, clear_n_clicks, generation_method):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -246,7 +281,7 @@ def download_synthetic_data(n_clicks, synthetic_file):
             return dcc.send_file(path)
     raise PreventUpdate
 
-# Callback to update graphs and summary statistics for real and synthetic data
+# Callback to Handle File Uploads to update graphs and summary statistics for real and synthetic data
 @app.callback(
     [Output('real-variable-distribution', 'figure'),
      Output('real-summary-statistics', 'data'),
@@ -259,14 +294,22 @@ def download_synthetic_data(n_clicks, synthetic_file):
      Input('y-axis-selector', 'value'),
      Input('plot-type-selector', 'value'),
      Input('synthetic-selector', 'value'),
-     Input('stat-test-selector', 'value')]
+     Input('stat-test-selector', 'value'),
+     Input('upload-data', 'contents')],
+    [State('upload-data', 'filename')]
 )
-def update_graphs(x_var, y_var, plot_type, synthetic_file, stat_test):
+
+def update_graphs(x_var, y_var, plot_type, synthetic_file, stat_test, contents, filename):
     if not x_var:
         return {}, [], [], {}, [], [], "Please select an x-axis variable."
 
-    # Load and preprocess real data
-    df_real, _ = preprocess_data(load_data(data_url))
+    # Load real data
+    if contents is not None:
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        df_real = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+    else:
+        df_real, _ = preprocess_data(load_data(data_url))
 
     # Load selected synthetic data
     if synthetic_file:
