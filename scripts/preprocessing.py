@@ -32,7 +32,7 @@ class PREPROC:
                                   names=self.header_names)
 
     def pseudonymize(self, tgt_path, column_name):
-        '''Function to pseudonymize data.
+        '''Function to pseudonymize data. Is reuable for multiple columns.
         :param: tgt_path: File path (including file name) to store the keyfile between original and pseudonymized ID
         :param: column_name: Name of the column that must be pseudonymized.
         :returns: keyfile: Pickle-file that store the original and pseudonymized values for the IDs per column.
@@ -125,11 +125,11 @@ class PREPROC:
 
     def replace_nans(self):
         '''In some columns, NANs should be 0, this function changes these columns.
+        :returns: dataframe without NANs
         '''
         df = self.data
 
         columns = ['ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']
-
         df[columns] = df[columns].fillna(0)
 
         self.data = df
@@ -138,6 +138,7 @@ class PREPROC:
     def save_processed_data(self, tgt_dir):
         '''This funcion is dedicated to storing the dataframe that is stored inside the class.
         :param: tgt_dir: Path to store the dataframe. Should be a CSV file-extension.
+        :returns: CSV file with 
         '''
         df = self.data
         df.to_csv(tgt_dir, columns=self.netto_headers, index=False)
