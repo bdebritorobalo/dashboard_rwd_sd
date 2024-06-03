@@ -186,7 +186,7 @@ app.layout = html.Div([
         html.Div(id='statistical-test-results')
     ]),
     html.Div([
-        html.H3('Patient Comparison'),
+        html.H3('Comparing individual patients with the population'),
         html.Label('Select Patient:'),
         dcc.Dropdown(
             id='patient-selector',
