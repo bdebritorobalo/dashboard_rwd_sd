@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 import dash
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
@@ -35,7 +36,6 @@ def load_data(contents, filename):
 
 def preprocess_data(df):
     """Preprocess the data (e.g., handle missing values)."""
-    # Handle missing data (exclude columns with > 50% missing data)
     df = df.dropna(thresh=len(df) * 0.5, axis=1)
     return df, df.columns.tolist()
 
@@ -184,13 +184,25 @@ app.layout = html.Div([
             placeholder="Select statistical test"
         ),
         html.Div(id='statistical-test-results')
+    ]),
+    html.Div([
+        html.H3('Patient Comparison'),
+        html.Label('Select Patient:'),
+        dcc.Dropdown(
+            id='patient-selector',
+            options=[],
+            value=None
+        ),
+        dcc.Graph(id='patient-comparison-boxplot')
     ])
 ])
 
 # Update column selectors based on uploaded data
 @app.callback(
     [Output('x-axis-selector', 'options'),
-     Output('y-axis-selector', 'options')],
+     Output('y-axis-selector', 'options'),
+     Output('patient-selector', 'options'),
+     Output('output-data-upload', 'children')],
     [Input('upload-data', 'contents')],
     [State('upload-data', 'filename')]
 )
@@ -200,7 +212,13 @@ def update_columns(contents, filename):
     df = load_data(contents, filename)
     _, columns = preprocess_data(df)
     options = [{'label': col, 'value': col} for col in columns]
-    return options, options
+    patient_options = [{'label': f'Patient {i}', 'value': i} for i in df.index]
+    table = dash_table.DataTable(
+        data=df.head().to_dict('records'),
+        columns=[{"name": i, "id": i} for i in df.columns],
+        page_size=10,
+    )
+    return options, options, patient_options, table
 
 # Combined callback to generate, save, and clear synthetic data
 @app.callback(
@@ -325,6 +343,61 @@ def update_graphs(x_var, y_var, plot_type, synthetic_file, stat_test, contents, 
         test_result = "Please select a statistical test and a single variable for comparison."
 
     return fig_real, real_summary_stats_data, real_summary_stats_columns, fig_synthetic, synthetic_summary_stats_data, synthetic_summary_stats_columns, test_result
+
+# Callback to update the patient comparison boxplot
+@app.callback(
+    Output('patient-comparison-boxplot', 'figure'),
+    [Input('patient-selector', 'value'),
+     Input('x-axis-selector', 'value'),
+     Input('synthetic-selector', 'value'),
+     Input('upload-data', 'contents'),
+     Input('upload-data', 'filename')]
+)
+def update_patient_comparison_boxplot(patient_idx, x_var, synthetic_file, contents, filename):
+    if not x_var or patient_idx is None:
+        raise PreventUpdate
+
+    # Load and preprocess real data
+    df_real = load_data(contents, filename)
+    df_real, _ = preprocess_data(df_real)
+
+    # Load selected synthetic data
+    if synthetic_file:
+        df_synthetic = pd.read_csv(synthetic_file)
+    else:
+        df_synthetic = generate_synthetic_data(df_real)
+    
+    patient_value = df_real.loc[patient_idx, x_var]
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Box(
+        y=df_real[x_var],
+        name="Real Data",
+        boxpoints='outliers'
+    ))
+    
+    fig.add_trace(go.Box(
+        y=df_synthetic[x_var],
+        name="Synthetic Data",
+        boxpoints='outliers'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=['Real Data', 'Synthetic Data'],
+        y=[patient_value, patient_value],
+        mode='markers+text',
+        name='Selected Patient',
+        text=['Patient'] * 2,
+        textposition='top center'
+    ))
+    
+    fig.update_layout(
+        title=f'Patient {patient_idx} Comparison on {x_var}',
+        yaxis_title=x_var
+    )
+
+    return fig
 
 # Step 4: Run the Dash Application
 
