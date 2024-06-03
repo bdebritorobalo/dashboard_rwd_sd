@@ -15,7 +15,7 @@ class PREPROC:
                         'ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']
         self.column_numbers=[0,1,5,8,9,10,11,12,15,16,17,18,19,20,21,22]
         self.removable_procedures=['989999', '339121', '339130B', '332486A', '339132', '332429',
-                                   '335512C', '332281A','332280A','332215D','333180B']
+                                   '335512C', '332281A','332280A','333180B','332215D']
         self.data = None
 
     def read_data(self, src_path):
@@ -54,30 +54,40 @@ class PREPROC:
         return temp_data
 
 
-    def remove_procedures(self):
+    def remove_procedures(self, extra_procedure=None):
         '''
-        This function will remove a preset list of procedures(for example 'procedure delayed')'''
+        This function will remove a preset list of procedures(for example 'procedure delayed')
+        A standard set of procedures to exclude is set in the class.
+        :param: extra_procedure: Add an extra list or singular procedure to exclude.
+        '''
         df = self.data
         procedures =self.removable_procedures
 
-        #Plain procedures to remove
+        if extra_procedure:
+            if isinstance(extra_procedure, list):
+                for proc in extra_procedure:
+                    procedures.append(proc)
+            else:
+                procedures.append(extra_procedure)
+
+        # 1. Plain procedures to remove
         for proc in procedures:
             condition0 = df['procedure_code'] == proc
             df = df[~condition0]
 
-        #multiple conditions (manually added)
+        # 2. Multiple conditions (manually added)
         condition1 = df['time_OR'] == 0
-        condition2 = df['procedure_code'] == '332553A'
+        condition2 = df['procedure_code'] == '332553A'  # Explantatie donorhart (extern zh)
         condition = condition1 & condition2
         df = df[~condition]
 
-        # Remove 'rare' procedures
+        # 3. Remove 'rare' procedures
         value_counts = df['procedure_code'].value_counts()
-        df_new = df[df['procedure_code'].isin(value_counts[value_counts > 5].index)]
+        df_new = df[df['procedure_code'].isin(value_counts[value_counts >= 5].index)]
 
-        # Remove 'rare' post-op diagnoses
+        # 4. Remove 'rare' post-op diagnoses
         value_counts = df_new['postop_diagnosis_code'].value_counts()
-        df_filtered = df_new[df_new['postop_diagnosis_code'].isin(value_counts[value_counts > 5].index)]
+        df_filtered = df_new[df_new['postop_diagnosis_code'].isin(value_counts[value_counts >= 5].index)]
 
         self.data = df_filtered
 
