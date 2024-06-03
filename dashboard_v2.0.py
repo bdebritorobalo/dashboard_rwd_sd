@@ -13,41 +13,30 @@ from flask import send_file
 from dash.exceptions import PreventUpdate
 from scipy.stats import ks_2samp, ttest_ind, chi2_contingency
 from ctgan import CTGAN
+import base64
+import io
 
 # Step 1: Load and Preprocess Data
 
-def load_data(url):
-    """Load data from a URL."""
+def load_data(contents, filename):
+    """Load data from a local CSV file."""
+    content_type, content_string = contents.split(',')
+    decoded = base64.b64decode(content_string)
     try:
-        df = pd.read_csv(url)
+        if 'csv' in filename:
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+        else:
+            raise ValueError("Unsupported file type.")
         if df.empty:
             raise ValueError("The dataset is empty.")
         return df
     except Exception as e:
-        raise ValueError(f"Error loading data from {url}: {e}")
+        raise ValueError(f"Error loading data from {filename}: {e}")
 
 def preprocess_data(df):
-    """Preprocess the data (e.g., handle missing values and rename columns)."""
+    """Preprocess the data (e.g., handle missing values)."""
     # Handle missing data (exclude columns with > 50% missing data)
     df = df.dropna(thresh=len(df) * 0.5, axis=1)
-    
-    # Retrieve the actual cryptic column names from the dataset
-    cryptic_column_names = df.columns.tolist()
-    
-    # Desired readable column names
-    readable_column_names = ['LCORE', 'LSURF', 'LO2', 'LBP', 'SURF_STBL', 'CORE_Stbl', 'BPS_STBL', 'COMFOR', 'DEC']
-    
-    # Ensure the lengths match
-    if len(cryptic_column_names) != len(readable_column_names):
-        raise ValueError("The number of cryptic and readable column names does not match.")
-    
-    # Create the column mapping
-    column_mapping = dict(zip(cryptic_column_names, readable_column_names))
-    
-    # Renaming columns according to the mapping
-    df.rename(columns=column_mapping, inplace=True)
-    print("Columns after renaming:", df.columns.tolist())  # Debugging statement to verify column renaming
-    
     return df, df.columns.tolist()
 
 # Step 2: Generate and Save Synthetic Data
@@ -57,7 +46,7 @@ def generate_synthetic_data(df, method='sample', n_samples=1000):
     if method == 'sample':
         synthetic_data = df.sample(n=n_samples, replace=True)
     elif method == 'ctgan':
-        ctgan = CTGAN(epochs=300)  # You can adjust the number of epochs as needed
+        ctgan = CTGAN(epochs=300)
         discrete_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
         ctgan.fit(df, discrete_columns)
         synthetic_data = ctgan.sample(n_samples)
@@ -96,14 +85,6 @@ def find_available_port(start_port=8050, max_tries=100):
 
 # Step 3: Dashboard Design and Implementation
 
-# Load data and preprocess
-data_url = 'https://query.data.world/s/u33lunmprotq2ubl7nhhvg52txbjxg?dws=00000'  # Update this URL to the actual dataset URL
-try:
-    real_data, columns = preprocess_data(load_data(data_url))
-except ValueError as e:
-    print(e)
-    columns = []
-
 # Initialize Dash app
 app = dash.Dash(__name__)
 server = app.server  # For serving the file download
@@ -111,19 +92,41 @@ server = app.server  # For serving the file download
 # Layout of the dashboard
 app.layout = html.Div([
     html.Div([
+        html.Label('Upload CSV File:'),
+        dcc.Upload(
+            id='upload-data',
+            children=html.Div([
+                'Drag and Drop or ',
+                html.A('Select Files')
+            ]),
+            style={
+                'width': '100%',
+                'height': '60px',
+                'lineHeight': '60px',
+                'borderWidth': '1px',
+                'borderStyle': 'dashed',
+                'borderRadius': '5px',
+                'textAlign': 'center',
+                'margin': '10px'
+            },
+            multiple=False
+        ),
+    ]),
+    html.Div(id='output-data-upload'),
+    html.Div([
         html.Label('Select X-axis variable:'),
         dcc.Dropdown(
             id='x-axis-selector',
-            options=[{'label': var, 'value': var} for var in columns],
-            value=columns[0] if columns else None  # Select the first variable by default
+            options=[],
+            value=None
         ),
     ], style={'width': '32%', 'display': 'inline-block'}),
     html.Div([
         html.Label('Select Y-axis variable:'),
         dcc.Dropdown(
             id='y-axis-selector',
-            options=[{'label': var, 'value': var} for var in columns],
-            value=None  # No default value
+            options=[],
+            value=None
         ),
     ], style={'width': '32%', 'display': 'inline-block'}),
     html.Div([
@@ -184,15 +187,31 @@ app.layout = html.Div([
     ])
 ])
 
+# Update column selectors based on uploaded data
+@app.callback(
+    [Output('x-axis-selector', 'options'),
+     Output('y-axis-selector', 'options')],
+    [Input('upload-data', 'contents')],
+    [State('upload-data', 'filename')]
+)
+def update_columns(contents, filename):
+    if contents is None:
+        raise PreventUpdate
+    df = load_data(contents, filename)
+    _, columns = preprocess_data(df)
+    options = [{'label': col, 'value': col} for col in columns]
+    return options, options
+
 # Combined callback to generate, save, and clear synthetic data
 @app.callback(
     Output('synthetic-selector', 'options'),
     [Input('generate-synthetic-button', 'n_clicks'),
      Input('clear-synthetic-button', 'n_clicks')],
-    [State('x-axis-selector', 'value'),
-     State('generation-method-selector', 'value')]
+    [State('generation-method-selector', 'value'),
+     State('upload-data', 'contents'),
+     State('upload-data', 'filename')]
 )
-def manage_synthetic_data(generate_n_clicks, clear_n_clicks, selected_vars, generation_method):
+def manage_synthetic_data(generate_n_clicks, clear_n_clicks, generation_method, contents, filename):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -201,9 +220,10 @@ def manage_synthetic_data(generate_n_clicks, clear_n_clicks, selected_vars, gene
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if button_id == 'generate-synthetic-button' and generate_n_clicks > 0:
-        df_real, _ = preprocess_data(load_data(data_url))
+        df_real = load_data(contents, filename)
+        df_real, _ = preprocess_data(df_real)
         df_synthetic = generate_synthetic_data(df_real, method=generation_method)
-        filename = save_synthetic_data(df_synthetic)
+        save_synthetic_data(df_synthetic)
     elif button_id == 'clear-synthetic-button' and clear_n_clicks > 0:
         clear_synthetic_files()
 
@@ -219,7 +239,7 @@ def download_synthetic_data(n_clicks, synthetic_file):
     if n_clicks > 0 and synthetic_file:
         path = os.path.join('.', synthetic_file)
         if os.path.exists(path):
-            return dcc.send_file(path)
+            return send_file(path)
     raise PreventUpdate
 
 # Callback to update graphs and summary statistics for real and synthetic data
@@ -235,14 +255,17 @@ def download_synthetic_data(n_clicks, synthetic_file):
      Input('y-axis-selector', 'value'),
      Input('plot-type-selector', 'value'),
      Input('synthetic-selector', 'value'),
-     Input('stat-test-selector', 'value')]
+     Input('stat-test-selector', 'value'),
+     Input('upload-data', 'contents'),
+     Input('upload-data', 'filename')]
 )
-def update_graphs(x_var, y_var, plot_type, synthetic_file, stat_test):
+def update_graphs(x_var, y_var, plot_type, synthetic_file, stat_test, contents, filename):
     if not x_var:
         return {}, [], [], {}, [], [], "Please select an x-axis variable."
 
     # Load and preprocess real data
-    df_real, _ = preprocess_data(load_data(data_url))
+    df_real = load_data(contents, filename)
+    df_real, _ = preprocess_data(df_real)
 
     # Load selected synthetic data
     if synthetic_file:
