@@ -116,12 +116,13 @@ class PREPROC:
                                               'procedure_duration',
                                               'procedure_duration_fix']].replace(0, np.nan).abs().min(axis=1)
 
-
-        # df_temp = df[['time_OR','procedure_duration', 'procedure_duration_fix']].replace(0, np.nan)
-        # df_temp[['time_OR','procedure_duration', 'procedure_duration_fix']] = df_temp[['time_OR','procedure_duration', 'procedure_duration_fix']].abs()
-        # df.loc[:, 'procedure_duration'] = df_temp[['time_OR','procedure_duration', 'procedure_duration_fix']].min(axis=1)
-
-        self.data = df #df.drop(columns=['procedure_duration_fix', 'time_OR']).reset_index()
+    def drop_subject(self, sub_id):
+        '''In some situations, specific patients should be dropped (for the sake of simplicity)
+        :param: sub_id: subject_id (string of 32 characters) that must be dropped'''
+        df = self.data
+        condition4 = df['subject_id'] == sub_id
+        df=df[~condition4]
+        self.data = df
 
     def replace_nans(self):
         '''In some columns, NANs should be 0, this function changes these columns.
@@ -131,14 +132,13 @@ class PREPROC:
 
         columns = ['ECC_duration', 'AOX_duration','DHCA_duration', 'ACP_duration']
         df[columns] = df[columns].fillna(0)
-
         self.data = df
 
 
     def save_processed_data(self, tgt_dir):
         '''This funcion is dedicated to storing the dataframe that is stored inside the class.
         :param: tgt_dir: Path to store the dataframe. Should be a CSV file-extension.
-        :returns: CSV file with 
+        :returns: CSV file with
         '''
         df = self.data
         df.to_csv(tgt_dir, columns=self.netto_headers, index=False)
@@ -153,6 +153,8 @@ if __name__ == '__main__':
     data.pseudonymize('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/config/surgery_keyfile.pkl', 'surgery_id')
 
     data.remove_procedures()
+    data.drop_subject('1e1cab63b5074d64852b4c61c4133e8c')
+    data.drop_subject('7cd70358dec0408093c014d88a7d20ee')
     data.fix_procedure_duration()
     data.replace_nans()
     data.save_processed_data('/Volumes/Brian/PHEMS/veilai/dashboard_rwd_sd/data/processed/20240603_data_processed.csv')
