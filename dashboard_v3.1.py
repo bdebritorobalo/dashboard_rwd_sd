@@ -126,54 +126,34 @@ app.layout = html.Div([
     html.Div(style={'height': '100px'}),    #spacer for content and header
 
     html.Div([
-
-    html.Div([
-        html.Label('Upload CSV File - Medical data:', style={'margin-left': '2%'}),
+        html.Div([
+        html.Label('Upload CSV File - Medical data:', style={'margin-left': '2.5%'}),
         dcc.Upload(
-            id='upload-data',
+            id='upload-data_medical',
             children=html.Div([
                 'Drag and Drop or ',
-                html.A('Select Files')
-            ]),
-            style={
-                'width': '95%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '5px 2.5%'
-            },
+                html.A('Select Files'),
+            ], className='upload-box'),
             multiple=False
         ),
         html.Div(id='output-data-upload_medical')
-    ],style={'width': '50%', 'display': 'inline-block'} ),
+    ],className='upload-box-container'),
 
     html.Div([
-        html.Label('Upload CSV File - Synthetic data:', style={'margin-left': '2%'}),
+        html.Label('Upload CSV File - Synthetic data:', style={'margin-left': '2.5%'}),
         dcc.Upload(
             id='upload-data-synth',
             children=html.Div([
                 'Drag and Drop or ',
-                html.A('Select Files')
-            ]),
-            style={
-                'width': '95%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '5px 2%'
-            },
+                html.A('Select Files'),
+            ], className='upload-box'),
             multiple=False
         ),
         html.Div(id='output-data-upload-synth')
-    ], style={'width': '50%', 'display': 'inline-block'}),
+    ],className='upload-box-container')
     ]),
 
+    # Bruno's settings
     html.Div([
         html.Label('Select X-axis variable:'),
         dcc.Dropdown(
@@ -277,9 +257,12 @@ app.layout = html.Div([
     [Output('x-axis-selector', 'options'),
      Output('y-axis-selector', 'options'),
      Output('patient-selector', 'options'),
-     Output('output-data-upload', 'children')],
-    [Input('upload-data', 'contents')],
-    [State('upload-data', 'filename')]
+     Output('output-data-upload_medical', 'children'),
+     Output('output-data-upload_synth', 'children')],
+    [Input('upload-data_medical', 'contents'),
+     Input('upload-data_synth', 'contents')],
+    [State('upload-data_medical', 'filename'),
+     State('upload-data_synth', 'filename')]
 )
 def update_columns(contents, filename):
     if contents is None:
