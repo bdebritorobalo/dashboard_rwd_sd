@@ -46,7 +46,7 @@ def generate_synthetic_data(df, method='sample', n_samples=500):
     if method == 'sample':
         synthetic_data = df.sample(n=n_samples, replace=True)
     elif method == 'ctgan':
-        ctgan = CTGAN(epochs=300)
+        ctgan = CTGAN(epochs=500)
         discrete_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
         ctgan.fit(df, discrete_columns)
         synthetic_data = ctgan.sample(n_samples)
