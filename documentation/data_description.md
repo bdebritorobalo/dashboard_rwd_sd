@@ -43,9 +43,9 @@ Example:
 
 ### Remarks
 
-Originally, the idea was to only display the 'main procedure' for each intervention recorded in the system. However, in at least 60 interventions, the insertion of the heart-lung machine was selected as the main procedure, which is clinically irrelevant.
-Therefore, all 'surgical procedures' are listed for each intervention. An identifier is added (`surgery_id`) and the column `main_procedure` was introduced.
-For the proof-of-concept dashbosard, we could choose to use the 'simple version' of the dataset.
+Originally, the idea was to only display the 'main procedure' for each surgery recorded in the system. However, in at least 60 interventions, the insertion of the heart-lung machine was selected as the main procedure, which most often is clinically irrelevant.
+Therefore, all 'surgical procedures' are listed for each surgery. An identifier is added (`surgery_id`) and the column `main_procedure` was introduced.
+For the proof-of-concept dashboard, we could choose to use the 'simple version' of the dataset.
 
 #### Advantages
 
@@ -64,7 +64,8 @@ Furthermore, all surgeries containing a procedure that occurred less than 5 time
 - We should determine the preferred datatypes. (I've created a suggestion in the data-overview)
 - Patient ID is anonymized using the following python package: [uuid4](https://docs.python.org/3/library/uuid.html#uuid.UUID.hex). It uses the function: `uuid4().hex`.
 - Surgery_id is anonymised using the same python package.
-- In some cases, the `procedure_duration` is missing a start- or end-time, this sometimes results in a negative value. The best alternative is looked for.
+- In some cases, the `procedure_duration` is missing a start- or end-time, this sometimes results in a negative value. The best alternative is looked for
+    - I've created the first temporary solution, which is not perfect.
     - Perhaps this is not a problem that should be fixed for what we want to showcase with this Proof-of-Concept.
 - `ACP_duration` is usually quite often not available. For creating synthetic data, this might not be the best parameter to include. We could drop the parameter if needed.
 - Linking data to the interventions without adding new identifiers is difficult for the `height` and `weight` of the patient. I'm looking for a possibile work-around, but can't promise anything before the consortium meeting.
