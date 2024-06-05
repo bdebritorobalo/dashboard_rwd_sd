@@ -2,25 +2,18 @@
 
 ## Description
 
-Dashboard providing desriptive statistics of both datasets
+Dashboard providing desriptive statistics of both datasets. <br>
+For more information about the dataset, see [data_description.md](documentation/data_description.md). 
 
 ## Getting Started
 
 ### Dependencies
 
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import dash
-from dash import dcc, html, dash_table
-from dash.dependencies import Input, Output, State
-import socket
-import os
-import datetime
-from flask import send_file
-from dash.exceptions import PreventUpdate
-from scipy.stats import ks_2samp, ttest_ind, chi2_contingency
-from ctgan import CTGAN0
+All dependencies can be installed using the following code in your prefered terminal: 
+
+```
+pip install -r requirements.txt
+```
 
 ### Installing
 
@@ -44,8 +37,8 @@ command to run if program contains helper info
 
 Contributors names and contact info
 
-Bruno Robalo
-b.debritorobalo@erasmusmc.nl
+- Bruno Robalo, b.debritorobalo@erasmusmc.nl 
+- Brian van Winden, b.vanwinden@erasmusmc.nl
 
 ## Version History
 
