@@ -1,20 +1,23 @@
 # File path: dashboard_analysis.py
 
-import pandas as pd
+import base64
+import dash
+import datetime
+import dash
+import dash_bootstrap_components as dbc
+import itertools
 import numpy as np
+import os
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import dash
+import socket
+from ctgan import CTGAN
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
-import os
-import datetime
-from flask import send_file
 from dash.exceptions import PreventUpdate
+from flask import send_file
 from scipy.stats import ks_2samp, ttest_ind, chi2_contingency
-from ctgan import CTGAN
-import base64
-import io
 
 # Step 1: Load and Preprocess Data
 
@@ -82,16 +85,50 @@ def find_available_port(start_port=8050, max_tries=100):
             port += 1
     raise RuntimeError("No available ports found")
 
+
+# Boxplot data manipulation
+def create_plot_data(data, procedures, column):        #! USING CALLBACKS
+    '''Data needs to be inserted in specific format to make grouped boxes.
+    !This version will only work if the y-axis is a time measurement in minutes!
+    :param: data: dataframe with all pre-processed data
+    :param: procedures: From callback, the procedures that will be listed on x-axis
+    :param: column: Column name (for durations) that should be added for each procedure.'''
+    y_data=[]
+    x_names=[]
+
+    df_dict = pd.DataFrame({'name':['Norwood', 'Glenn', 'Adapted Fontan'], 'code':['333024B', '333226','333025']})
+
+    for proc in procedures:
+        data_temp = data[column].loc[data['procedure_code'] == proc]
+        y_data.extend(data_temp)
+        x_names.extend(list(itertools.repeat(df_dict['name'].loc[df_dict['code'] == proc].item(),
+                                             len(data_temp))))
+    return y_data, x_names
+
+
+
+
 # Step 3: Dashboard Design and Implementation
 
 # Initialize Dash app
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 server = app.server  # For serving the file download
 
 # Layout of the dashboard
 app.layout = html.Div([
+    #HEADER
     html.Div([
-        html.Label('Upload CSV File:'),
+                        html.Img(src='/assets/phems_logo_RGB_color_cropped.png'),
+                        html.Div([
+                            html.H2('Dashboard: Real world data vs. Synthetic data', className='header-title')
+                            ],className='header-title-container')
+                        ],className= 'header'),
+    html.Div(style={'height': '100px'}),    #spacer for content and header
+
+    html.Div([
+
+    html.Div([
+        html.Label('Upload CSV File - Medical data:', style={'margin-left': '2%'}),
         dcc.Upload(
             id='upload-data',
             children=html.Div([
@@ -99,19 +136,44 @@ app.layout = html.Div([
                 html.A('Select Files')
             ]),
             style={
-                'width': '100%',
+                'width': '95%',
                 'height': '60px',
                 'lineHeight': '60px',
                 'borderWidth': '1px',
                 'borderStyle': 'dashed',
                 'borderRadius': '5px',
                 'textAlign': 'center',
-                'margin': '10px'
+                'margin': '5px 2.5%'
             },
             multiple=False
         ),
+        html.Div(id='output-data-upload_medical')
+    ],style={'width': '50%', 'display': 'inline-block'} ),
+
+    html.Div([
+        html.Label('Upload CSV File - Synthetic data:', style={'margin-left': '2%'}),
+        dcc.Upload(
+            id='upload-data-synth',
+            children=html.Div([
+                'Drag and Drop or ',
+                html.A('Select Files')
+            ]),
+            style={
+                'width': '95%',
+                'height': '60px',
+                'lineHeight': '60px',
+                'borderWidth': '1px',
+                'borderStyle': 'dashed',
+                'borderRadius': '5px',
+                'textAlign': 'center',
+                'margin': '5px 2%'
+            },
+            multiple=False
+        ),
+        html.Div(id='output-data-upload-synth')
+    ], style={'width': '50%', 'display': 'inline-block'}),
     ]),
-    html.Div(id='output-data-upload'),
+
     html.Div([
         html.Label('Select X-axis variable:'),
         dcc.Dropdown(
@@ -119,7 +181,7 @@ app.layout = html.Div([
             options=[],
             value=None
         ),
-    ], style={'width': '32%', 'display': 'inline-block'}),
+    ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
     html.Div([
         html.Label('Select Y-axis variable:'),
         dcc.Dropdown(
@@ -127,7 +189,7 @@ app.layout = html.Div([
             options=[],
             value=None
         ),
-    ], style={'width': '32%', 'display': 'inline-block'}),
+    ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
     html.Div([
         html.Label('Select Plot Type:'),
         dcc.Dropdown(
@@ -140,7 +202,7 @@ app.layout = html.Div([
             ],
             value='histogram'  # Default plot type
         ),
-    ], style={'width': '32%', 'display': 'inline-block'}),
+    ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
     html.Div([
         html.Label('Select Synthetic Data Generation Method:'),
         dcc.Dropdown(

@@ -1,4 +1,4 @@
-import pandas as pd 
+import pandas as pd
 from dash import Dash, dcc, html, Input, Output, State, callback, dash_table
 import plotly.express as px
 import dash_bootstrap_components as dbc
