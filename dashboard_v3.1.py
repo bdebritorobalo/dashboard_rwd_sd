@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 import itertools
 import numpy as np
 import os
+import io
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -114,7 +115,7 @@ def create_plot_data(data, procedures, column):        #! USING CALLBACKS
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 server = app.server  # For serving the file download
 
-# Layout of the dashboard
+# --------------- Layout of the dashboard -------------------- #
 app.layout = html.Div([
     #HEADER
     html.Div([
@@ -124,20 +125,22 @@ app.layout = html.Div([
                             ],className='header-title-container')
                         ],className= 'header'),
     html.Div(style={'height': '110px'}),    #spacer for content and header
+    html.Div([html.H4('Upload both files first:', style={'text-align':'center', 'margin':'10px'})]),
+    # fix follows later
 
     html.Div([
         html.Div([
-        html.Label('Upload CSV File - Medical data:', style={'margin-left': '2.5%'}),
-        dcc.Upload(
-            id='upload-data-medical',
-            children=html.Div([
-                'Drag and Drop or ',
-                html.A('Select Files'),
-            ], className='upload-box'),
-            multiple=False
-        ),
-        html.Div(id='output-data-upload-medical')
-    ],className='upload-box-container'),
+            html.Label('Upload CSV File - Medical data:', style={'margin-left': '2.5%'}),
+            dcc.Upload(
+                id='upload-data-medical',
+                children=html.Div([
+                    'Drag and Drop or ',
+                    html.A('Select Files'),
+                ], className='upload-box'),
+                multiple=False
+            ),
+            html.Div(id='output-data-upload-medical', className='table_container')
+        ],className='upload-box-container'),
 
     html.Div([
         html.Label('Upload CSV File - Synthetic data:', style={'margin-left': '2.5%'}),
@@ -149,7 +152,7 @@ app.layout = html.Div([
             ], className='upload-box'),
             multiple=False
         ),
-        html.Div(id='output-data-upload-synth')
+        html.Div(id='output-data-upload-synth', className='table_container')
     ],className='upload-box-container')
     ]),
 
@@ -242,6 +245,38 @@ app.layout = html.Div([
         ),
         html.Div(id='statistical-test-results')
     ]),
+    html.Div([],style={'height':'50px'}),
+
+    html.Div([
+    html.Div([html.H3(['Boxplot'])], style={'margin-left':'1%'}),
+    html.Div([
+        html.Label('Select procedure(s):'),
+        dcc.Dropdown(
+            id='procedure-selector',
+            options=[],
+            value=None,
+            multi=True
+            )
+        ], style={'width': '48%', 'display': 'inline-block', 'margin-left':'1%'}),   #, 'margin-left':'1%'
+    html.Div([
+        html.Label('Select column(s):'),
+        dcc.Dropdown(
+            id='plot-type-selector',
+            options=[
+                {'label': 'Histogram', 'value': 'histogram'},
+                {'label': 'Pie Chart', 'value': 'pie'},
+                {'label': 'Box Plot', 'value': 'box'},
+                {'label': 'Scatter Plot', 'value': 'scatter'}
+            ],
+            value='ECC_duration',  # Default plot type
+            multi=True
+            ),
+        ], style={'width': '48%', 'display':'inline-block', 'margin-left':'1%'}),      #, 'margin-left':'1%'
+
+        dcc.Graph(id='patient-comparison-boxplot')
+    ]),
+
+
     html.Div([
         html.H3('Patient Comparison'),
         html.Label('Select Patient:'),
@@ -267,6 +302,8 @@ app.layout = html.Div([
      State('upload-data-synth', 'filename')]
 )
 def update_columns(contents_medical, contents_synth, filename_medical, filename_synth):
+    '''says that its missing docstring, anoying'''
+
     if contents_medical is None:
         raise PreventUpdate
 
@@ -279,17 +316,23 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
     table_medical = dash_table.DataTable(
         data=df_medical.head().to_dict('records'),
         columns=[{"name": i, "id": i} for i in df_medical.columns],
-        page_size=10
+        page_size=10,
+        style_table={'overflowX': 'scroll', 'width':'45%', 'margin':'0 1%'}
         )
+
+    # if contents_synth is None:
+    #     raise PreventUpdate
 
     # Add synthetic data with the same columns
     df_synth = load_data(contents_synth, filename_synth)
     table_synth = dash_table.DataTable(
         data=df_synth.head().to_dict('records'),
         columns=[{"name": i, "id": i} for i in df_synth.columns],
-        page_size=10
+        page_size=10,
+        style_table={'overflowX': 'scroll', 'width':'45%', 'margin':'0 1%'}
         )
     return options, options, patient_options, table_medical, table_synth
+
 
 # Combined callback to generate, save, and clear synthetic data
 # @app.callback(
@@ -345,12 +388,12 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
      Input('plot-type-selector', 'value'),
     #  Input('color-scheme-selector', 'value'),
      Input('stat-test-selector', 'value'),
-     Input('upload-data-synth', 'contents'),
-     Input('upload-data-synth', 'filename'),
      Input('upload-data-medical', 'contents'),
-     Input('upload-data-medical', 'filename')]
+     Input('upload-data-medical', 'filename'),
+     Input('upload-data-synth', 'contents'),
+     Input('upload-data-synth', 'filename')]
 )
-def update_graphs(x_var, y_var, plot_type, stat_test, contents_synth, filename_synth, contents_medical, filename_medical):
+def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename_medical, contents_synth, filename_synth):
     if not x_var:
         return {}, [], [], {}, [], [], "Please select an x-axis variable."
 
@@ -397,28 +440,28 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_synth, filename_s
 
     if plot_type == 'histogram':
         if y_var:
-            fig_real = px.histogram(df_real, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', category_orders=category_orders, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.histogram(df_synthetic, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', category_orders=category_orders, color_discrete_sequence=color_sequence)
+            fig_real = px.histogram(df_real, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', category_orders=category_orders) #, color_discrete_sequence=color_sequence)
+            fig_synthetic = px.histogram(df_synthetic, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', category_orders=category_orders) #, color_discrete_sequence=color_sequence)
         else:
-            fig_real = px.histogram(df_real, x=x_var, title=f'{x_var} Distribution (Real)', category_orders=category_orders, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.histogram(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', category_orders=category_orders, color_discrete_sequence=color_sequence)
+            fig_real = px.histogram(df_real, x=x_var, title=f'{x_var} Distribution (Real)', category_orders=category_orders) #, color_discrete_sequence=color_sequence)
+            fig_synthetic = px.histogram(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', category_orders=category_orders) #, color_discrete_sequence=color_sequence)
     elif plot_type == 'pie':
-        fig_real = px.pie(df_real, names=x_var, title=f'{x_var} Distribution (Real)', color_discrete_sequence=color_sequence)
-        fig_synthetic = px.pie(df_synthetic, names=x_var, title=f'{x_var} Distribution (Synthetic)', color_discrete_sequence=color_sequence)
+        fig_real = px.pie(df_real, names=x_var, title=f'{x_var} Distribution (Real)')#, color_discrete_sequence=color_sequence)
+        fig_synthetic = px.pie(df_synthetic, names=x_var, title=f'{x_var} Distribution (Synthetic)')#, color_discrete_sequence=color_sequence)
     elif plot_type == 'box':
         if y_var:
-            fig_real = px.box(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', color_discrete_sequence=color_sequence)
-            fig_synthetic = px.box(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', color_discrete_sequence=color_sequence)
+            fig_real = px.box(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Real)')#, color_discrete_sequence=color_sequence)
+            fig_synthetic = px.box(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)')#, color_discrete_sequence=color_sequence)
         else:
-            fig_real = px.box(df_real, x=x_var, title=f'{x_var} Distribution (Real)', color_discrete_sequence=color_sequence)
-            fig_synthetic = px.box(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', color_discrete_sequence=color_sequence)
+            fig_real = px.box(df_real, x=x_var, title=f'{x_var} Distribution (Real)')#, color_discrete_sequence=color_sequence)
+            fig_synthetic = px.box(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)')#, color_discrete_sequence=color_sequence)
     elif plot_type == 'scatter':
         if y_var:
-            fig_real = px.scatter(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Real)', color_discrete_sequence=color_sequence)
-            fig_synthetic = px.scatter(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Synthetic)', color_discrete_sequence=color_sequence)
+            fig_real = px.scatter(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Real)')#, color_discrete_sequence=color_sequence)
+            fig_synthetic = px.scatter(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Synthetic)')#, color_discrete_sequence=color_sequence)
         else:
-            fig_real = px.scatter(df_real, x=x_var, title=f'{x_var} Scatter Plot (Real)', color_discrete_sequence=color_sequence)
-            fig_synthetic = px.scatter(df_synthetic, x=x_var, title=f'{x_var} Scatter Plot (Synthetic)', color_discrete_sequence=color_sequence)
+            fig_real = px.scatter(df_real, x=x_var, title=f'{x_var} Scatter Plot (Real)')#, color_discrete_sequence=color_sequence)
+            fig_synthetic = px.scatter(df_synthetic, x=x_var, title=f'{x_var} Scatter Plot (Synthetic)')#, color_discrete_sequence=color_sequence)
 
     # Perform statistical test
     if stat_test and len(selected_vars) == 1:

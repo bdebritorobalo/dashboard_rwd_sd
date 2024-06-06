@@ -54,7 +54,10 @@ app.layout = dbc.Container([html.Div(children=[
                 data = df.to_dict('records'),
                 columns = [{'name': col, 'id': col} for col in df.columns],
                 page_size= 10,
-                style_table={'overflowX': 'scroll'})
+                css=[{
+                    'selector': 'table',
+                    'rule': 'custom-table'
+        }])
         ] ,className='dashboard-container'
         )],
             fluid=True

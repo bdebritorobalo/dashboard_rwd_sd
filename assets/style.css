@@ -24,7 +24,7 @@
 }
 
 .header-title {
-    margin-left: 15%;
+    margin-left: 18%;
     font-size: 36px;
 }
 
@@ -45,10 +45,33 @@ A:hover {
     border-radius: 5px;
     border-style: dashed;
     text-align: center;
-    margin: 5px 2.5%;
+    margin: 0 2.5%;
 }
 
 .upload-box-container {
     width: 50%;
+    display: inline-block;
+}
+
+.table_container {
+    width: 50%;
+    margin: 10px;
+    flex-grow: 0;
+    display: flex;
+}
+
+.custom_table {
+    width: 48%;
+    margin: 5px, 2.5%;
+    overflow-x: scroll;
+}
+
+.drop-box {
+    width: 95%;
+    margin: auto;
+}
+
+.drop-box-container {
+    width: 45%;
     display: inline-block;
 }
