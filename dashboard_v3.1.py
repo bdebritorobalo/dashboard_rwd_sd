@@ -123,20 +123,20 @@ app.layout = html.Div([
                             html.H2('Dashboard: Real world data vs. Synthetic data', className='header-title')
                             ],className='header-title-container')
                         ],className= 'header'),
-    html.Div(style={'height': '100px'}),    #spacer for content and header
+    html.Div(style={'height': '110px'}),    #spacer for content and header
 
     html.Div([
         html.Div([
         html.Label('Upload CSV File - Medical data:', style={'margin-left': '2.5%'}),
         dcc.Upload(
-            id='upload-data_medical',
+            id='upload-data-medical',
             children=html.Div([
                 'Drag and Drop or ',
                 html.A('Select Files'),
             ], className='upload-box'),
             multiple=False
         ),
-        html.Div(id='output-data-upload_medical')
+        html.Div(id='output-data-upload-medical')
     ],className='upload-box-container'),
 
     html.Div([
@@ -183,44 +183,46 @@ app.layout = html.Div([
             value='histogram'  # Default plot type
         ),
     ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
-    html.Div([
-        html.Label('Select Synthetic Data Generation Method:'),
-        dcc.Dropdown(
-            id='generation-method-selector',
-            options=[
-                {'label': 'Sample with Replacement', 'value': 'sample'},
-                {'label': 'CTGAN', 'value': 'ctgan'}
-            ],
-            value='sample'  # Default method
-        ),
-    ], style={'width': '32%', 'display': 'inline-block'}),
 
-    html.Div([
-        html.Label('Select Color Scheme:'),
-        dcc.Dropdown(
-            id='color-scheme-selector',
-            options=[
+    # html.Div([
+    #     html.Label('Select Synthetic Data Generation Method:'),
+    #     dcc.Dropdown(
+    #         id='generation-method-selector',
+    #         options=[
+    #             {'label': 'Sample with Replacement', 'value': 'sample'},
+    #             {'label': 'CTGAN', 'value': 'ctgan'}
+    #         ],
+    #         value='sample'  # Default method
+    #     ),
+    # ], style={'width': '32%', 'display': 'inline-block'}),
 
-                {'label': 'Plotly', 'value': 'Plotly'}
-            ],
-            value='Plotly'  # Default color scheme
-        ),
-    ], style={'width': '32%', 'display': 'inline-block'}),
-    html.Button('Generate Synthetic Data', id='generate-synthetic-button', n_clicks=0),
-    html.Button('Clear Synthetic Data', id='clear-synthetic-button', n_clicks=0),
-    dcc.Dropdown(
-        id='synthetic-selector',
-        options=[{'label': f, 'value': f} for f in list_synthetic_files()],
-        placeholder="Select synthetic dataset"
-    ),
-    html.Button('Download Selected Synthetic Data', id='download-synthetic-button', n_clicks=0),
-    dcc.Download(id='download-synthetic-data'),
+    # html.Div([
+    #     html.Label('Select Color Scheme:'),
+    #     dcc.Dropdown(
+    #         id='color-scheme-selector',
+    #         options=[
+
+    #             {'label': 'Plotly', 'value': 'Plotly'}
+    #         ],
+    #         value='Plotly'  # Default color scheme
+    #     ),
+    # ], style={'width': '32%', 'display': 'inline-block'}),
+
+    # html.Button('Generate Synthetic Data', id='generate-synthetic-button', n_clicks=0),
+    # html.Button('Clear Synthetic Data', id='clear-synthetic-button', n_clicks=0),
+    # dcc.Dropdown(
+    #     id='synthetic-selector',
+    #     options=[{'label': f, 'value': f} for f in list_synthetic_files()],
+    #     placeholder="Select synthetic dataset"
+    # ),
+    # html.Button('Download Selected Synthetic Data', id='download-synthetic-button', n_clicks=0),
+    # dcc.Download(id='download-synthetic-data'),
     html.Div([
         html.Div([
             html.H3('Real Data'),
             dcc.Graph(id='real-variable-distribution'),
             dash_table.DataTable(id='real-summary-statistics')
-        ], style={'width': '48%', 'display': 'inline-block'}),
+        ], style={'width': '48%', 'display': 'inline-block', 'margin-left': '20px'}),
         html.Div([
             html.H3('Synthetic Data'),
             dcc.Graph(id='synthetic-variable-distribution'),
@@ -257,66 +259,77 @@ app.layout = html.Div([
     [Output('x-axis-selector', 'options'),
      Output('y-axis-selector', 'options'),
      Output('patient-selector', 'options'),
-     Output('output-data-upload_medical', 'children'),
-     Output('output-data-upload_synth', 'children')],
-    [Input('upload-data_medical', 'contents'),
-     Input('upload-data_synth', 'contents')],
-    [State('upload-data_medical', 'filename'),
-     State('upload-data_synth', 'filename')]
+     Output('output-data-upload-medical', 'children'),
+     Output('output-data-upload-synth', 'children')],
+    [Input('upload-data-medical', 'contents'),
+     Input('upload-data-synth', 'contents')],
+    [State('upload-data-medical', 'filename'),
+     State('upload-data-synth', 'filename')]
 )
-def update_columns(contents, filename):
-    if contents is None:
+def update_columns(contents_medical, contents_synth, filename_medical, filename_synth):
+    if contents_medical is None:
         raise PreventUpdate
-    df = load_data(contents, filename)
-    _, columns = preprocess_data(df)
-    options = [{'label': col, 'value': col} for col in columns]
-    patient_options = [{'label': f'Patient {i}', 'value': i} for i in df.index]
-    table = dash_table.DataTable(
-        data=df.head().to_dict('records'),
-        columns=[{"name": i, "id": i} for i in df.columns],
-        page_size=10,
-    )
-    return options, options, patient_options, table
+
+    #load and preprocess real-world data
+    df_medical = load_data(contents_medical, filename_medical)
+    _, columns_medical = preprocess_data(df_medical)
+
+    options = [{'label': col, 'value': col} for col in columns_medical]
+    patient_options = [{'label': f'Patient {i}', 'value': i} for i in df_medical.index]
+    table_medical = dash_table.DataTable(
+        data=df_medical.head().to_dict('records'),
+        columns=[{"name": i, "id": i} for i in df_medical.columns],
+        page_size=10
+        )
+
+    # Add synthetic data with the same columns
+    df_synth = load_data(contents_synth, filename_synth)
+    table_synth = dash_table.DataTable(
+        data=df_synth.head().to_dict('records'),
+        columns=[{"name": i, "id": i} for i in df_synth.columns],
+        page_size=10
+        )
+    return options, options, patient_options, table_medical, table_synth
 
 # Combined callback to generate, save, and clear synthetic data
-@app.callback(
-    Output('synthetic-selector', 'options'),
-    [Input('generate-synthetic-button', 'n_clicks'),
-     Input('clear-synthetic-button', 'n_clicks')],
-    [State('generation-method-selector', 'value'),
-     State('upload-data', 'contents'),
-     State('upload-data', 'filename')]
-)
-def manage_synthetic_data(generate_n_clicks, clear_n_clicks, generation_method, contents, filename):
-    ctx = dash.callback_context
+# @app.callback(
+#     Output('synthetic-selector', 'options'),
+#     [Input('generate-synthetic-button', 'n_clicks'),
+#      Input('clear-synthetic-button', 'n_clicks')],
+#     [State('generation-method-selector', 'value'),
+#      State('upload-data', 'contents'),
+#      State('upload-data', 'filename')]
+# )
+# def manage_synthetic_data(generate_n_clicks, clear_n_clicks, generation_method, contents, filename):
+#     ctx = dash.callback_context
 
-    if not ctx.triggered:
-        return [{'label': f, 'value': f} for f in list_synthetic_files()]
+#     if not ctx.triggered:
+#         return [{'label': f, 'value': f} for f in list_synthetic_files()]
 
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+#     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if button_id == 'generate-synthetic-button' and generate_n_clicks > 0:
-        df_real = load_data(contents, filename)
-        df_real, _ = preprocess_data(df_real)
-        df_synthetic = generate_synthetic_data(df_real, method=generation_method)
-        save_synthetic_data(df_synthetic)
-    elif button_id == 'clear-synthetic-button' and clear_n_clicks > 0:
-        clear_synthetic_files()
+#     if button_id == 'generate-synthetic-button' and generate_n_clicks > 0:
+#         df_real = load_data(contents, filename)
+#         df_real, _ = preprocess_data(df_real)
+#         df_synthetic = generate_synthetic_data(df_real, method=generation_method)
+#         save_synthetic_data(df_synthetic)
+#     elif button_id == 'clear-synthetic-button' and clear_n_clicks > 0:
+#         clear_synthetic_files()
 
-    return [{'label': f, 'value': f} for f in list_synthetic_files()]
+#     return [{'label': f, 'value': f} for f in list_synthetic_files()]
 
-# Callback to serve the selected synthetic dataset file for download
-@app.callback(
-    Output('download-synthetic-data', 'data'),
-    Input('download-synthetic-button', 'n_clicks'),
-    State('synthetic-selector', 'value')
-)
-def download_synthetic_data(n_clicks, synthetic_file):
-    if n_clicks > 0 and synthetic_file:
-        path = os.path.join('.', synthetic_file)
-        if os.path.exists(path):
-            return send_file(path)
-    raise PreventUpdate
+# # Callback to serve the selected synthetic dataset file for download
+# @app.callback(
+#     Output('download-synthetic-data', 'data'),
+#     Input('download-synthetic-button', 'n_clicks'),
+#     State('synthetic-selector', 'value')
+# )
+# def download_synthetic_data(n_clicks, synthetic_file):
+#     if n_clicks > 0 and synthetic_file:
+#         path = os.path.join('.', synthetic_file)
+#         if os.path.exists(path):
+#             return send_file(path)
+#     raise PreventUpdate
 
 # Callback to update graphs and summary statistics for real and synthetic data
 @app.callback(
@@ -330,23 +343,24 @@ def download_synthetic_data(n_clicks, synthetic_file):
     [Input('x-axis-selector', 'value'),
      Input('y-axis-selector', 'value'),
      Input('plot-type-selector', 'value'),
-     Input('color-scheme-selector', 'value'),
-     Input('synthetic-selector', 'value'),
+    #  Input('color-scheme-selector', 'value'),
      Input('stat-test-selector', 'value'),
-     Input('upload-data', 'contents'),
-     Input('upload-data', 'filename')]
+     Input('upload-data-synth', 'contents'),
+     Input('upload-data-synth', 'filename'),
+     Input('upload-data-medical', 'contents'),
+     Input('upload-data-medical', 'filename')]
 )
-def update_graphs(x_var, y_var, plot_type, color_scheme, synthetic_file, stat_test, contents, filename):
+def update_graphs(x_var, y_var, plot_type, stat_test, contents_synth, filename_synth, contents_medical, filename_medical):
     if not x_var:
         return {}, [], [], {}, [], [], "Please select an x-axis variable."
 
     # Load and preprocess real data
-    df_real = load_data(contents, filename)
+    df_real = load_data(contents_medical, filename_medical)
     df_real, _ = preprocess_data(df_real)
 
     # Load selected synthetic data
-    if synthetic_file:
-        df_synthetic = pd.read_csv(synthetic_file)
+    if contents_synth and filename_synth:
+        df_synthetic = load_data(contents_synth, filename_synth)
     else:
         df_synthetic = generate_synthetic_data(df_real)
 
@@ -369,13 +383,14 @@ def update_graphs(x_var, y_var, plot_type, color_scheme, synthetic_file, stat_te
     category_orders = {var: df_real[var].astype('category').cat.categories.tolist() for var in selected_vars if df_real[var].dtype.name == 'category' or df_real[var].dtype.name == 'object'}
 
     # Set color scheme
-    if color_scheme == 'default':
-        color_sequence = px.colors.sequential.Viridis
-    else:
-        try:
-            color_sequence = getattr(px.colors.sequential, color_scheme)
-        except AttributeError:
-            color_sequence = getattr(px.colors.qualitative, color_scheme)
+    #TODO: MAKE PHEMS COLORSCHEME --> Colors are already available in BOXPLOT JUPYTER
+    # if color_scheme == 'default':
+    #     color_sequence = px.colors.sequential.Viridis
+    # else:
+    #     try:
+    #         color_sequence = getattr(px.colors.sequential, color_scheme)
+    #     except AttributeError:
+    #         color_sequence = getattr(px.colors.qualitative, color_scheme)
 
     # Create the plot
     fig_real, fig_synthetic = None, None
@@ -429,60 +444,60 @@ def update_graphs(x_var, y_var, plot_type, color_scheme, synthetic_file, stat_te
 
     return fig_real, real_summary_stats_data, real_summary_stats_columns, fig_synthetic, synthetic_summary_stats_data, synthetic_summary_stats_columns, test_result
 
-# Callback to update the patient comparison boxplot
-@app.callback(
-    Output('patient-comparison-boxplot', 'figure'),
-    [Input('patient-selector', 'value'),
-     Input('x-axis-selector', 'value'),
-     Input('synthetic-selector', 'value'),
-     Input('upload-data', 'contents'),
-     Input('upload-data', 'filename')]
-)
-def update_patient_comparison_boxplot(patient_idx, x_var, synthetic_file, contents, filename):
-    if not x_var or patient_idx is None:
-        raise PreventUpdate
+# # Callback to update the patient comparison boxplot
+# @app.callback(
+#     Output('patient-comparison-boxplot', 'figure'),
+#     [Input('patient-selector', 'value'),
+#      Input('x-axis-selector', 'value'),
+#      Input('synthetic-selector', 'value'),
+#      Input('upload-data', 'contents'),
+#      Input('upload-data', 'filename')]
+# )
+# def update_patient_comparison_boxplot(patient_idx, x_var, synthetic_file, contents, filename):
+#     if not x_var or patient_idx is None:
+#         raise PreventUpdate
 
-    # Load and preprocess real data
-    df_real = load_data(contents, filename)
-    df_real, _ = preprocess_data(df_real)
+#     # Load and preprocess real data
+#     df_real = load_data(contents, filename)
+#     df_real, _ = preprocess_data(df_real)
 
-    # Load selected synthetic data
-    if synthetic_file:
-        df_synthetic = pd.read_csv(synthetic_file)
-    else:
-        df_synthetic = generate_synthetic_data(df_real)
+#     # Load selected synthetic data
+#     if synthetic_file:
+#         df_synthetic = pd.read_csv(synthetic_file)
+#     else:
+#         df_synthetic = generate_synthetic_data(df_real)
 
-    patient_value = df_real.loc[patient_idx, x_var]
+#     patient_value = df_real.loc[patient_idx, x_var]
 
-    fig = go.Figure()
+#     fig = go.Figure()
 
-    fig.add_trace(go.Box(
-        y=df_real[x_var],
-        name="Real Data",
-        boxpoints='outliers'
-    ))
+#     fig.add_trace(go.Box(
+#         y=df_real[x_var],
+#         name="Real Data",
+#         boxpoints='outliers'
+#     ))
 
-    fig.add_trace(go.Box(
-        y=df_synthetic[x_var],
-        name="Synthetic Data",
-        boxpoints='outliers'
-    ))
+#     fig.add_trace(go.Box(
+#         y=df_synthetic[x_var],
+#         name="Synthetic Data",
+#         boxpoints='outliers'
+#     ))
 
-    fig.add_trace(go.Scatter(
-        x=['Real Data', 'Synthetic Data'],
-        y=[patient_value, patient_value],
-        mode='markers+text',
-        name='Selected Patient',
-        text=['Patient'] * 2,
-        textposition='top center'
-    ))
+#     fig.add_trace(go.Scatter(
+#         x=['Real Data', 'Synthetic Data'],
+#         y=[patient_value, patient_value],
+#         mode='markers+text',
+#         name='Selected Patient',
+#         text=['Patient'] * 2,
+#         textposition='top center'
+#     ))
 
-    fig.update_layout(
-        title=f'Patient {patient_idx} Comparison on {x_var}',
-        yaxis_title=x_var
-    )
+#     fig.update_layout(
+#         title=f'Patient {patient_idx} Comparison on {x_var}',
+#         yaxis_title=x_var
+#     )
 
-    return fig
+#     return fig
 
 # Step 4: Run the Dash Application
 
