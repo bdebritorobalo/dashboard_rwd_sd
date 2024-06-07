@@ -268,15 +268,15 @@ app.layout = html.Div([
 
 
     ]),
-    html.Div([
-        html.H3('Patient Comparison'),
-        html.Label('Select Patient:'),
-        dcc.Dropdown(
-            id='patient-selector',
-            options=[],
-            value=None
-        )
-    ]),
+    # html.Div([
+    #     html.H3('Patient Comparison'),
+    #     html.Label('Select Patient:'),
+    #     dcc.Dropdown(
+    #         id='patient-selector',
+    #         options=[],
+    #         value=None
+    #     )
+    # ]),
 
 
 
@@ -288,7 +288,7 @@ app.layout = html.Div([
     [Output('x-axis-selector', 'options'),
      Output('y-axis-selector', 'options'),
      Output('procedure-selector', 'options'),
-     Output('patient-selector', 'options'),
+    #  Output('patient-selector', 'options'),
      Output('output-data-upload-medical', 'children'),
      Output('output-data-upload-synth', 'children')],
     [Input('upload-data-medical', 'contents'),
@@ -328,7 +328,8 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
         page_size=10,
         style_table={'overflowX': 'auto', 'virtualization':'True'}
         )
-    return options, options, procedures, patient_options, table_medical, table_synth
+    return options, options, procedures, table_medical, table_synth
+    # return options, options, procedures, patient_options, table_medical, table_synth
 
 
 # Callback to update graphs and summary statistics for real and synthetic data
