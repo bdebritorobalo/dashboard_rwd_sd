@@ -5,6 +5,7 @@ import dash
 import datetime
 import dash
 import dash_bootstrap_components as dbc
+import dash_daq as daq
 import itertools
 import numpy as np
 import os
@@ -74,6 +75,28 @@ def clear_synthetic_files(directory='.'):
     for f in files:
         os.remove(os.path.join(directory, f))
 
+
+def create_plot_data(data, procedures, column, main_proc):        #! USING CALLBACKS
+    y_data=[]
+    x_names=[]
+
+    # needs to be expanded
+    # df_dict = pd.DataFrame({'name':['Norwood', 'Glenn', 'Adapted Fontan','ECMO'], 'code':['333024B', '333226','333025', '333180']})
+    df_dict = data[['procedure_code', 'procedure_text']].drop_duplicates()
+    print(f"length adf_dictionary: {len(df_dict)}")
+
+    if main_proc:
+        # print('main_proc is aan')
+        data = data.loc[data['main_procedure'] == 1]
+    # print(len(data))
+
+    for proc in procedures:
+        data_temp = data[column].loc[data['procedure_code'] == proc]
+        y_data.extend(data_temp)
+        x_names.extend(list(itertools.repeat(df_dict['procedure_text'].loc[df_dict['procedure_code'] == proc].item(),
+                                             len(data_temp))))
+    return y_data, x_names
+
 # Function to find an available port
 
 def find_available_port(start_port=8050, max_tries=100):
@@ -85,26 +108,6 @@ def find_available_port(start_port=8050, max_tries=100):
                 return port
             port += 1
     raise RuntimeError("No available ports found")
-
-
-# Boxplot data manipulation
-def create_plot_data(data, procedures, column):        #! USING CALLBACKS
-    '''Data needs to be inserted in specific format to make grouped boxes.
-    !This version will only work if the y-axis is a time measurement in minutes!
-    :param: data: dataframe with all pre-processed data
-    :param: procedures: From callback, the procedures that will be listed on x-axis
-    :param: column: Column name (for durations) that should be added for each procedure.'''
-    y_data=[]
-    x_names=[]
-
-    df_dict = pd.DataFrame({'name':['Norwood', 'Glenn', 'Adapted Fontan'], 'code':['333024B', '333226','333025']})
-
-    for proc in procedures:
-        data_temp = data[column].loc[data['procedure_code'] == proc]
-        y_data.extend(data_temp)
-        x_names.extend(list(itertools.repeat(df_dict['name'].loc[df_dict['code'] == proc].item(),
-                                             len(data_temp))))
-    return y_data, x_names
 
 
 
@@ -189,12 +192,12 @@ app.layout = html.Div([
 # comparing 2 graphs!
     html.Div([
         html.Div([
-            html.H3('Real Data'),
+            html.H4('Real Data'),
             dcc.Graph(id='real-variable-distribution'),
             dash_table.DataTable(id='real-summary-statistics')
         ], className='compare-direct'),
         html.Div([
-            html.H3('Synthetic Data'),
+            html.H4('Synthetic Data'),
             dcc.Graph(id='synthetic-variable-distribution'),
             dash_table.DataTable(id='synthetic-summary-statistics')
         ], className='compare-direct' ) #style={'width': '48%', 'display': 'inline-block','outline':'solid lime'})
@@ -222,29 +225,49 @@ app.layout = html.Div([
         dcc.Dropdown(
             id='procedure-selector',
             options=[],
-            value=None,
+            value= None,
             multi=True
             )
-        ], style={'width': '48%', 'display': 'inline-block', 'margin-left':'1%'}),   #, 'margin-left':'1%'
+        ], style={'width': '30%', 'display': 'inline-block', 'margin-left':'1%'}),
     html.Div([
         html.Label('Select column(s):'),
         dcc.Dropdown(
-            id='plot-type-selector-2',
+            id='column-selector',
             options=[
-                {'label': 'Histogram', 'value': 'histogram'},
-                {'label': 'Pie Chart', 'value': 'pie'},
-                {'label': 'Box Plot', 'value': 'box'},
-                {'label': 'Scatter Plot', 'value': 'scatter'}
+                {'label': 'Procedure Duration', 'value': 'procedure_duration'},
+                {'label': 'Extra Corporal Circulation', 'value': 'ECC_duration'},
+                {'label': 'Aorta Clamping Time', 'value': 'AOX_duration'},
+                {'label': 'Deep Hypothermic Cardiac Arrest', 'value': 'DHCA_duration'},
             ],
-            value='ECC_duration',  # Default plot type
+            value= None,  # Default plot type
             multi=True
             ),
-        ], style={'width': '48%', 'display':'inline-block', 'margin-left':'1%'}),      #, 'margin-left':'1%'
+        ], style={'width': '30%', 'display':'inline-block', 'margin-left':'1%'}),
+   html.Div([
+        html.Label('Toggle for main-procedures only:'),
+        daq.BooleanSwitch(
+            id='main-proc-toggle',
+            on=False,
+            color='#4e8ca9'
+        ),
+    ], style={'width': '10%', 'display': 'inline-block', 'margin-left':'1%'}
+    ),
 
-        dcc.Graph(id='patient-comparison-boxplot')
+    html.Div([
+        html.Div([
+            html.H4('Real Data'),
+            dcc.Graph(id='medical-patient-boxplot'),
+            # dash_table.DataTable(id='real-summary-statistics')
+        ], className='compare-direct'),
+        html.Div([
+            html.H4('Synthetic Data'),
+            dcc.Graph(id='synthetic-boxplot'),
+            # dash_table.DataTable(id='synthetic-summary-statistics')
+        ], className='compare-direct' )
+    ], className='compare-container'),
+
+
     ]),
-
-
     html.Div([
         html.H3('Patient Comparison'),
         html.Label('Select Patient:'),
@@ -252,15 +275,19 @@ app.layout = html.Div([
             id='patient-selector',
             options=[],
             value=None
-        ),
-        dcc.Graph(id='patient-comparison-boxplot')
-    ])
+        )
+    ]),
+
+
+
+
 ])
 
 # Update column selectors based on uploaded data
 @app.callback(
     [Output('x-axis-selector', 'options'),
      Output('y-axis-selector', 'options'),
+     Output('procedure-selector', 'options'),
      Output('patient-selector', 'options'),
      Output('output-data-upload-medical', 'children'),
      Output('output-data-upload-synth', 'children')],
@@ -280,6 +307,8 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
     _, columns_medical = preprocess_data(df_medical)
 
     options = [{'label': col, 'value': col} for col in columns_medical]
+    procedures = [{'label': procedure_code, 'value': procedure_code} for  procedure_code in df_medical['procedure_code'].unique()]
+
     patient_options = [{'label': f'Patient {i}', 'value': i} for i in df_medical.index]
     table_medical = dash_table.DataTable(
         data=df_medical.head().to_dict('records'),
@@ -299,7 +328,7 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
         page_size=10,
         style_table={'overflowX': 'auto', 'virtualization':'True'}
         )
-    return options, options, patient_options, table_medical, table_synth
+    return options, options, procedures, patient_options, table_medical, table_synth
 
 
 # Callback to update graphs and summary statistics for real and synthetic data
@@ -416,59 +445,79 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename
     return fig_real, real_summary_stats_data, real_summary_stats_columns, fig_synthetic, synthetic_summary_stats_data, synthetic_summary_stats_columns, test_result
 
 # # Callback to update the patient comparison boxplot
-# @app.callback(
-#     Output('patient-comparison-boxplot', 'figure'),
-#     [Input('patient-selector', 'value'),
-#      Input('x-axis-selector', 'value'),
-#      Input('synthetic-selector', 'value'),
-#      Input('upload-data', 'contents'),
-#      Input('upload-data', 'filename')]
-# )
-# def update_patient_comparison_boxplot(patient_idx, x_var, synthetic_file, contents, filename):
-#     if not x_var or patient_idx is None:
-#         raise PreventUpdate
+@app.callback(
+    [Output('medical-patient-boxplot', 'figure'),
+    Output('synthetic-boxplot', 'figure')],
+    [Input('procedure-selector', 'value'),
+     Input('column-selector', 'value'),
+     Input('upload-data-medical','contents'),
+     Input('upload-data-synth', 'contents'),
+     Input('upload-data-medical', 'filename'),
+     Input('upload-data-synth', 'filename'),
+     Input('main-proc-toggle', 'on')]
+)
+def update_patient_comparison_boxplot(procedures, columns, contents, synth_contents,filename, synth_filename, on):
+    '''Docstring problem exists again'''
 
-#     # Load and preprocess real data
-#     df_real = load_data(contents, filename)
-#     df_real, _ = preprocess_data(df_real)
 
-#     # Load selected synthetic data
-#     if synthetic_file:
-#         df_synthetic = pd.read_csv(synthetic_file)
-#     else:
-#         df_synthetic = generate_synthetic_data(df_real)
+    colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF']
 
-#     patient_value = df_real.loc[patient_idx, x_var]
+    if not contents or not synth_contents:
+        raise PreventUpdate
+    df_real = load_data(contents, filename)
+    df_synthetic = load_data(synth_contents, synth_filename)
 
-#     fig = go.Figure()
+    # print(len(df_real), len(df_synthetic))
 
-#     fig.add_trace(go.Box(
-#         y=df_real[x_var],
-#         name="Real Data",
-#         boxpoints='outliers'
-#     ))
+    if not procedures or not columns:
+        raise PreventUpdate
 
-#     fig.add_trace(go.Box(
-#         y=df_synthetic[x_var],
-#         name="Synthetic Data",
-#         boxpoints='outliers'
-#     ))
+    if procedures:
+        print(f'length {len(procedures)}')
+    print(f'main_proc: {on}')
 
-#     fig.add_trace(go.Scatter(
-#         x=['Real Data', 'Synthetic Data'],
-#         y=[patient_value, patient_value],
-#         mode='markers+text',
-#         name='Selected Patient',
-#         text=['Patient'] * 2,
-#         textposition='top center'
-#     ))
+    fig_medical = go.Figure()
 
-#     fig.update_layout(
-#         title=f'Patient {patient_idx} Comparison on {x_var}',
-#         yaxis_title=x_var
-#     )
 
-#     return fig
+    # Create boxplot 1:
+    for i, column in enumerate(columns):
+        y_data, x_names = create_plot_data(data=df_real, procedures=procedures, column=column, main_proc=on)
+        fig_medical.add_trace(go.Box(
+            boxpoints='all',
+            y= y_data,
+            x= x_names,
+            name= f'{column}',
+            marker_color= colors[i]
+        ))
+
+    fig_medical.update_layout(
+        yaxis_title='Duration in minutes',
+        xaxis_title='Procedure codes',
+        boxmode='group'             # group together boxes of the different traces for each value of x
+    )
+
+# Create boxplot 2:
+    fig_synth = go.Figure()
+
+    for i, column in enumerate(columns):
+        y_data, x_names = create_plot_data(data=df_synthetic, procedures=procedures, column=column, main_proc=on)
+        fig_synth.add_trace(go.Box(
+            boxpoints='all',
+            y= y_data,
+            x= x_names,
+            name= f'{column}',
+            marker_color= colors[i]
+        ))
+
+    fig_synth.update_layout(
+        yaxis_title='Duration in minutes',
+        xaxis_title='Procedure codes',
+        boxmode='group'             # group together boxes of the different traces for each value of x
+    )
+
+
+    return fig_medical, fig_synth
+
 
 # Step 4: Run the Dash Application
 
