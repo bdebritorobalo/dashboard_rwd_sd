@@ -1,32 +1,36 @@
 .header{
     display: flex;
     position: fixed;
+    align-items: center;
     top:0;
     left:0;
     width: 100%;
     height: 90px;
     z-index: 1000;
-    padding: 5px 10px;
     background-color: #f2f2f2;
+
 
 }
 
 .header img{
-    height: 90px;
-    margin-bottom: 15px;
+    height: 80px;
 }
 
-.header-title-container {
-    flex-grow: 1;
+.header-title{
     display: flex;
-    /* justify-content: center; */
-    margin-top: 18px;
+    position: absolute;
+    justify-content: center;
+    width: 100%;
 }
 
-.header-title {
-    margin-left: 18%;
+/* .header-title { */
+    /* margin-left: 18%; */
+    /* display: flex;
+    flex-grow: 1; */
+    /* text-align: center;
     font-size: 36px;
-}
+    outline: solid purple; */
+/* } */
 
 A {
     color: blue;
@@ -40,9 +44,10 @@ A:hover {
 .upload-box-container {
     width: 50%;
     display: inline-block;
-    padding-left: 0.5%;
-    padding-right: 0.5%;
-    outline: solid red;
+    padding: 0 1%;
+    /* padding-left: 1%;
+    padding-right: 1%; */
+    /* outline: solid red; */
 }
 
 .upload-box{
@@ -52,32 +57,38 @@ A:hover {
     border-radius: 5px;
     border-style: dashed;
     text-align: center;
-    outline: solid yellow;
 }
 
-.table_container {
-    width: 50%;
-    margin: 100px 0px;
-    flex-grow: 0;
+.table-container {
+    margin: 15px 0px;
+    padding: 5px;
+}
+
+
+.drop-box-container {
     display: flex;
-    outline: solid lime;
-    /* padding-left: 0.5%;
-    padding-right: 0.5%; */
-    /* padding-top: 0.5%; */
-}
-
-.custom_table {
-    /* width: 48%; */
-    /* margin: 5px, 2.5%; */
-    overflow-x: scroll;
+    padding: 0.5%;
+    /* outline: solid red; */
 }
 
 .drop-box {
-    width: 95%;
-    margin: auto;
+    flex: 1;
+    padding: 0.5% 0.5%;
+    /* outline: solid yellow; */
 }
 
-.drop-box-container {
-    width: 45%;
-    display: inline-block;
+
+
+.compare-container{
+    display: flex;
+    box-sizing: border-box;
+    padding: 1%;
+    /* outline:solid red */
+}
+
+.compare-direct  {
+    flex-grow: 1;
+    padding: 0.5%;
+    width: 50%;
+    /* outline: solid yellow; */
 }

@@ -120,12 +120,10 @@ app.layout = html.Div([
     #HEADER
     html.Div([
                         html.Img(src='/assets/phems_logo_RGB_color_cropped.png'),
-                        html.Div([
-                            html.H2('Dashboard: Real world data vs. Synthetic data', className='header-title')
-                            ],className='header-title-container')
+                        html.H2('Dashboard: Real world data vs. Synthetic data', className='header-title'),
                         ],className= 'header'),
     html.Div(style={'height': '110px'}),    #spacer for content and header
-    html.Div([html.H4('Upload both files first:', style={'text-align':'center', 'margin':'10px'})]),
+    html.Div([html.H4('Upload both files before continuing:', style={'text-align':'center', 'margin':'10px'})]),
     # fix follows later
 
     html.Div([
@@ -139,7 +137,7 @@ app.layout = html.Div([
                 ], className='upload-box'),
                 multiple=False
             ),
-            html.Div(id='output-data-upload-medical', className='table_container')
+            html.Div(id='output-data-upload-medical', className='table-container')
         ],className='upload-box-container'),
 
     html.Div([
@@ -152,19 +150,19 @@ app.layout = html.Div([
             ], className='upload-box'),
             multiple=False
         ),
-        html.Div(id='output-data-upload-synth', className='table_container')
+        html.Div(id='output-data-upload-synth', className='table-container')
     ],className='upload-box-container')
     ]),
 
     # Bruno's settings
-    html.Div([
+   html.Div([html.Div([
         html.Label('Select X-axis variable:'),
         dcc.Dropdown(
             id='x-axis-selector',
             options=[],
             value=None
         ),
-    ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
+    ], className='drop-box'),
     html.Div([
         html.Label('Select Y-axis variable:'),
         dcc.Dropdown(
@@ -172,7 +170,7 @@ app.layout = html.Div([
             options=[],
             value=None
         ),
-    ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
+    ], className='drop-box'),
     html.Div([
         html.Label('Select Plot Type:'),
         dcc.Dropdown(
@@ -185,53 +183,23 @@ app.layout = html.Div([
             ],
             value='histogram'  # Default plot type
         ),
-    ], style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
+    ], className='drop-box'),], className='drop-box-container'),
+    # , style={'width': '32%', 'display': 'inline-block', 'margin-left': '1%'}),
 
-    # html.Div([
-    #     html.Label('Select Synthetic Data Generation Method:'),
-    #     dcc.Dropdown(
-    #         id='generation-method-selector',
-    #         options=[
-    #             {'label': 'Sample with Replacement', 'value': 'sample'},
-    #             {'label': 'CTGAN', 'value': 'ctgan'}
-    #         ],
-    #         value='sample'  # Default method
-    #     ),
-    # ], style={'width': '32%', 'display': 'inline-block'}),
-
-    # html.Div([
-    #     html.Label('Select Color Scheme:'),
-    #     dcc.Dropdown(
-    #         id='color-scheme-selector',
-    #         options=[
-
-    #             {'label': 'Plotly', 'value': 'Plotly'}
-    #         ],
-    #         value='Plotly'  # Default color scheme
-    #     ),
-    # ], style={'width': '32%', 'display': 'inline-block'}),
-
-    # html.Button('Generate Synthetic Data', id='generate-synthetic-button', n_clicks=0),
-    # html.Button('Clear Synthetic Data', id='clear-synthetic-button', n_clicks=0),
-    # dcc.Dropdown(
-    #     id='synthetic-selector',
-    #     options=[{'label': f, 'value': f} for f in list_synthetic_files()],
-    #     placeholder="Select synthetic dataset"
-    # ),
-    # html.Button('Download Selected Synthetic Data', id='download-synthetic-button', n_clicks=0),
-    # dcc.Download(id='download-synthetic-data'),
+# comparing 2 graphs!
     html.Div([
         html.Div([
             html.H3('Real Data'),
             dcc.Graph(id='real-variable-distribution'),
             dash_table.DataTable(id='real-summary-statistics')
-        ], style={'width': '48%', 'display': 'inline-block', 'margin-left': '20px'}),
+        ], className='compare-direct'),
         html.Div([
             html.H3('Synthetic Data'),
             dcc.Graph(id='synthetic-variable-distribution'),
             dash_table.DataTable(id='synthetic-summary-statistics')
-        ], style={'width': '48%', 'display': 'inline-block'})
-    ]),
+        ], className='compare-direct' ) #style={'width': '48%', 'display': 'inline-block','outline':'solid lime'})
+    ], className='compare-container'),
+
     html.Div([
         html.H3('Statistical Comparison'),
         dcc.Dropdown(
@@ -261,7 +229,7 @@ app.layout = html.Div([
     html.Div([
         html.Label('Select column(s):'),
         dcc.Dropdown(
-            id='plot-type-selector',
+            id='plot-type-selector-2',
             options=[
                 {'label': 'Histogram', 'value': 'histogram'},
                 {'label': 'Pie Chart', 'value': 'pie'},
@@ -302,7 +270,7 @@ app.layout = html.Div([
      State('upload-data-synth', 'filename')]
 )
 def update_columns(contents_medical, contents_synth, filename_medical, filename_synth):
-    '''says that its missing docstring, anoying'''
+    '''says that its missing docstring, annoying'''
 
     if contents_medical is None:
         raise PreventUpdate
@@ -317,11 +285,11 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
         data=df_medical.head().to_dict('records'),
         columns=[{"name": i, "id": i} for i in df_medical.columns],
         page_size=10,
-        style_table={'overflowX': 'scroll', 'width':'45%', 'margin':'0 1%'}
+        style_table={'overflowX': 'auto', 'virtualization':'True'},
         )
 
-    # if contents_synth is None:
-    #     raise PreventUpdate
+    if contents_synth is None:
+        raise PreventUpdate
 
     # Add synthetic data with the same columns
     df_synth = load_data(contents_synth, filename_synth)
@@ -329,50 +297,10 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
         data=df_synth.head().to_dict('records'),
         columns=[{"name": i, "id": i} for i in df_synth.columns],
         page_size=10,
-        style_table={'overflowX': 'scroll', 'width':'45%', 'margin':'0 1%'}
+        style_table={'overflowX': 'auto', 'virtualization':'True'}
         )
     return options, options, patient_options, table_medical, table_synth
 
-
-# Combined callback to generate, save, and clear synthetic data
-# @app.callback(
-#     Output('synthetic-selector', 'options'),
-#     [Input('generate-synthetic-button', 'n_clicks'),
-#      Input('clear-synthetic-button', 'n_clicks')],
-#     [State('generation-method-selector', 'value'),
-#      State('upload-data', 'contents'),
-#      State('upload-data', 'filename')]
-# )
-# def manage_synthetic_data(generate_n_clicks, clear_n_clicks, generation_method, contents, filename):
-#     ctx = dash.callback_context
-
-#     if not ctx.triggered:
-#         return [{'label': f, 'value': f} for f in list_synthetic_files()]
-
-#     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-#     if button_id == 'generate-synthetic-button' and generate_n_clicks > 0:
-#         df_real = load_data(contents, filename)
-#         df_real, _ = preprocess_data(df_real)
-#         df_synthetic = generate_synthetic_data(df_real, method=generation_method)
-#         save_synthetic_data(df_synthetic)
-#     elif button_id == 'clear-synthetic-button' and clear_n_clicks > 0:
-#         clear_synthetic_files()
-
-#     return [{'label': f, 'value': f} for f in list_synthetic_files()]
-
-# # Callback to serve the selected synthetic dataset file for download
-# @app.callback(
-#     Output('download-synthetic-data', 'data'),
-#     Input('download-synthetic-button', 'n_clicks'),
-#     State('synthetic-selector', 'value')
-# )
-# def download_synthetic_data(n_clicks, synthetic_file):
-#     if n_clicks > 0 and synthetic_file:
-#         path = os.path.join('.', synthetic_file)
-#         if os.path.exists(path):
-#             return send_file(path)
-#     raise PreventUpdate
 
 # Callback to update graphs and summary statistics for real and synthetic data
 @app.callback(
@@ -435,7 +363,7 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename
     #     except AttributeError:
     #         color_sequence = getattr(px.colors.qualitative, color_scheme)
 
-    # Create the plot
+# Create the plot
     fig_real, fig_synthetic = None, None
 
     if plot_type == 'histogram':
@@ -463,7 +391,7 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename
             fig_real = px.scatter(df_real, x=x_var, title=f'{x_var} Scatter Plot (Real)')#, color_discrete_sequence=color_sequence)
             fig_synthetic = px.scatter(df_synthetic, x=x_var, title=f'{x_var} Scatter Plot (Synthetic)')#, color_discrete_sequence=color_sequence)
 
-    # Perform statistical test
+# Perform statistical test
     if stat_test and len(selected_vars) == 1:
         if df_real[x_var].dtype.kind in 'iufc' and df_synthetic[x_var].dtype.kind in 'iufc':
             real_data = df_real[x_var].dropna()
