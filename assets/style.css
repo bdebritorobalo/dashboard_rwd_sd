@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css?family=Poppins');
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
 .header{
     display: flex;
     position: fixed;
@@ -8,8 +14,6 @@
     height: 90px;
     z-index: 1000;
     background-color: #f2f2f2;
-
-
 }
 
 .header img{
@@ -42,15 +46,23 @@ A:hover {
 }
 
 .upload-box-container {
-    width: 50%;
-    display: inline-block;
+    display: flex;
+    /* outline: solid purple; */
+}
+
+.upload-internal-container {
+    flex: 1;
+    max-width: 50%;
     padding: 0 1%;
-    /* padding-left: 1%;
-    padding-right: 1%; */
-    /* outline: solid red; */
+    /* outline: solid lime; */
+}
+
+.statistics {
+    padding-top: 0.75%;
 }
 
 .upload-box{
+    flex:1;
     height: 60px;
     line-height: 60px;
     border-width: 1px;
@@ -62,6 +74,8 @@ A:hover {
 .table-container {
     margin: 15px 0px;
     padding: 5px;
+    font-weight: 200;
+    outline: solid red;
 }
 
 
@@ -71,13 +85,15 @@ A:hover {
     /* outline: solid red; */
 }
 
-.drop-box {
+.drop-box, .statistics {
     flex: 1;
     padding: 0.5% 0.5%;
     /* outline: solid yellow; */
 }
 
-
+.statistics{
+    padding-top: 0.75%;
+}
 
 .compare-container{
     display: flex;
@@ -86,9 +102,41 @@ A:hover {
     /* outline:solid red */
 }
 
-.compare-direct  {
+.compare-box  {
     flex-grow: 1;
     padding: 0.5%;
     width: 50%;
     /* outline: solid yellow; */
+}
+
+.box-menu-container{
+    display: flex;
+    padding: 0.5% 0;
+    align-items: end;
+    /* outline: solid purple; */
+
+}
+
+.dropdown-menu-container{
+    width: 30%;
+    margin-left: 1%;
+    /* outline: solid red; */
+}
+
+.button-menu-container{
+    flex: 1;
+    margin-left: 1%;
+    display: flex;
+    width: 15%;
+    margin-bottom: 0.2%;
+    /* outline: solid orange; */
+}
+
+.boolean-button{
+    margin-left: 3%;
+    /* outline: solid greenyellow; */
+}
+
+H3{
+    margin: 1%;
 }
