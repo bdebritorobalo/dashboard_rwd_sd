@@ -440,7 +440,7 @@ def update_patient_comparison_boxplot(procedures, columns, contents, synth_conte
         fig_medical.add_trace(go.Box(
             boxpoints='all',
             y= y_data,
-            x= x_names,
+            x= [(name[:14] + '...' + name[-14:]) if len(name) > 32 else name for name in x_names],
             name= f'{column}',
             marker_color= colors[i]
         ))
@@ -448,7 +448,8 @@ def update_patient_comparison_boxplot(procedures, columns, contents, synth_conte
     fig_medical.update_layout(
         yaxis_title='Duration in minutes',
         xaxis_title='Procedure codes',
-        boxmode='group'             # group together boxes of the different traces for each value of x
+        boxmode='group'  ,           # group together boxes of the different traces for each value of x
+        height=600
     )
 
 # Create boxplot 2:
@@ -459,15 +460,17 @@ def update_patient_comparison_boxplot(procedures, columns, contents, synth_conte
         fig_synth.add_trace(go.Box(
             boxpoints='all',
             y= y_data,
-            x= x_names,
+            x= [(name[:14] + '...' + name[-14:]) if len(name) > 40 else name for name in x_names],
             name= f'{column}',
-            marker_color= colors[i]
+            marker_color= colors[i],
         ))
 
+    # fig_synth.update_xaxes(ticklabeloverflow='allow',)
     fig_synth.update_layout(
         yaxis_title='Duration in minutes',
         xaxis_title='Procedure codes',
-        boxmode='group'             # group together boxes of the different traces for each value of x
+        boxmode='group',          # group together boxes of the different traces for each value of x
+        height=600
     )
 
 
@@ -478,4 +481,4 @@ def update_patient_comparison_boxplot(procedures, columns, contents, synth_conte
 
 if __name__ == '__main__':
     port = find_available_port()
-    app.run_server(debug=False, port=port)
+    app.run_server(debug=True, port=port)
