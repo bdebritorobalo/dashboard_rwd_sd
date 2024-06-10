@@ -74,8 +74,7 @@ A:hover {
 .table-container {
     margin: 15px 0px;
     padding: 5px;
-    font-weight: 200;
-    outline: solid red;
+    /* outline: solid red; */
 }
 
 
