@@ -1,4 +1,4 @@
-import pandas as pd 
+import pandas as pd
 from dash import Dash, dcc, html, Input, Output, State, callback, dash_table
 import plotly.express as px
 import dash_bootstrap_components as dbc
@@ -54,7 +54,10 @@ app.layout = dbc.Container([html.Div(children=[
                 data = df.to_dict('records'),
                 columns = [{'name': col, 'id': col} for col in df.columns],
                 page_size= 10,
-                style_table={'overflowX': 'scroll'})
+                css=[{
+                    'selector': 'table',
+                    'rule': 'custom-table'
+        }])
         ] ,className='dashboard-container'
         )],
             fluid=True

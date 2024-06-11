@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css?family=Poppins');
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
+.header{
+    display: flex;
+    position: fixed;
+    align-items: center;
+    top:0;
+    left:0;
+    width: 100%;
+    height: 90px;
+    z-index: 1000;
+    background-color: #f2f2f2;
+}
+
+.header img{
+    height: 80px;
+}
+
+.header-title{
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    width: 100%;
+}
+
+/* .header-title { */
+    /* margin-left: 18%; */
+    /* display: flex;
+    flex-grow: 1; */
+    /* text-align: center;
+    font-size: 36px;
+    outline: solid purple; */
+/* } */
+
+A {
+    color: blue;
+}
+
+A:hover {
+    color: blue;
+    cursor: pointer;
+}
+
+.upload-box-container {
+    display: flex;
+    /* outline: solid purple; */
+}
+
+.upload-internal-container {
+    flex: 1;
+    max-width: 50%;
+    padding: 0 1%;
+    /* outline: solid lime; */
+}
+
+.statistics {
+    padding-top: 0.75%;
+}
+
+.upload-box{
+    flex:1;
+    height: 60px;
+    line-height: 60px;
+    border-width: 1px;
+    border-radius: 5px;
+    border-style: dashed;
+    text-align: center;
+}
+
+.table-container {
+    margin: 15px 0px;
+    padding: 5px;
+    /* outline: solid red; */
+}
+
+
+.drop-box-container {
+    display: flex;
+    padding: 0.5%;
+    /* outline: solid red; */
+}
+
+.drop-box, .statistics {
+    flex: 1;
+    padding: 0.5% 0.5%;
+    /* outline: solid yellow; */
+}
+
+.statistics{
+    padding-top: 0.75%;
+}
+
+.compare-container{
+    display: flex;
+    box-sizing: border-box;
+    padding: 1%;
+    /* outline:solid red */
+}
+
+.compare-box  {
+    flex-grow: 1;
+    padding: 0.5%;
+    width: 50%;
+    /* outline: solid yellow; */
+}
+
+.box-menu-container{
+    display: flex;
+    padding: 0.5% 0;
+    align-items: end;
+    /* outline: solid purple; */
+
+}
+
+.dropdown-menu-container{
+    width: 30%;
+    margin-left: 1%;
+    /* outline: solid red; */
+}
+
+.button-menu-container{
+    flex: 1;
+    margin-left: 1%;
+    display: flex;
+    width: 15%;
+    margin-bottom: 0.2%;
+    /* outline: solid orange; */
+}
+
+.boolean-button{
+    margin-left: 3%;
+    /* outline: solid greenyellow; */
+}
+
+H3{
+    margin: 1%;
+}
