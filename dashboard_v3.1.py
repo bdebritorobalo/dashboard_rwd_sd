@@ -1,33 +1,33 @@
-# File path: dashboard_analysis.py
+
+'''
+Python: dashboard to compare real-world data to synthetic data using Dash Plotly.
+Use this file as a main.py
+'''
 
 import base64
-import dash
-import datetime
+import itertools
+import io
+import socket
 import dash
 import dash_bootstrap_components as dbc
 import dash_daq as daq
-import itertools
 import numpy as np
-import os
-import io
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import socket
-from ctgan import CTGAN
+# from ctgan import CTGAN
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from flask import send_file
+# from flask import send_file
 from scipy.stats import ks_2samp, ttest_ind, chi2_contingency
 
 # Step 1: Load and Preprocess Data
-
-colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF']
+# phems_colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF']
 
 def load_data(contents, filename):
     """Load data from a local CSV file."""
-    content_type, content_string = contents.split(',')
+    _, content_string = contents.split(',')     # _ used to be content_type
     decoded = base64.b64decode(content_string)
     try:
         if 'csv' in filename:
@@ -51,8 +51,9 @@ def create_plot_data(data, procedures, column, main_proc):
     y_data=[]
     x_names=[]
 
-    # needs to be expanded
-    # df_dict = pd.DataFrame({'name':['Norwood', 'Glenn', 'Adapted Fontan','ECMO'], 'code':['333024B', '333226','333025', '333180']})
+    # needs to be expanded --> wait for synthetic data how this could be done optimally
+    # df_dict = pd.DataFrame({'name':['Norwood', 'Glenn', 'Adapted Fontan','ECMO'],
+    #   'code':['333024B', '333226','333025', '333180']})
     df_dict = data[['procedure_code', 'procedure_text']].drop_duplicates()
 
     if main_proc:
@@ -71,12 +72,12 @@ def create_plot_data(data, procedures, column, main_proc):
 
 def find_available_port(start_port=8050, max_tries=100):
     """Find an available port starting from start_port."""
-    port = start_port
+    port_attempt = start_port
     for _ in range(max_tries):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if s.connect_ex(('localhost', port)) != 0:
-                return port
-            port += 1
+            if s.connect_ex(('localhost', port_attempt)) != 0:
+                return port_attempt
+            port_attempt += 1
     raise RuntimeError("No available ports found")
 
 
@@ -92,10 +93,10 @@ server = app.server  # For serving the file download
 app.layout = html.Div([
     #HEADER
     html.Div([
-                        html.Img(src='/assets/phems_logo_RGB_color_cropped.png'),
-                        html.H2('Dashboard: Real world data vs. Synthetic data', className='header-title'),
-                        ],className= 'header'),
-    html.Div(style={'height': '110px'}),    #spacer for content and header
+        html.Img(src='/assets/phems_logo_RGB_color_cropped.png'),
+        html.H2('Dashboard: Real world data vs. Synthetic data', className='header-title'),
+        ],className= 'header'),
+    html.Div(style={'height': '110px'}),                                #spacer for content and header
     html.Div([html.H4('Upload both files before continuing:', style={'text-align':'center'})]),
     html.Div([
         html.Div([
@@ -214,8 +215,7 @@ app.layout = html.Div([
                 ], className='dropdown-menu-container'),
             html.Div([
                 html.Label('Toggle for main-procedures only:'),
-                daq.BooleanSwitch(
-                    id='main-proc-toggle',
+                daq.BooleanSwitch(id='main-proc-toggle',
                     on=False,
                     color='#4e8ca9',
                     className= 'boolean-button'
@@ -234,18 +234,7 @@ app.layout = html.Div([
             dcc.Graph(id='synthetic-boxplot'),
         ], className='compare-box' )
     ], className='compare-container'),
-
-
-    ]),
-    # html.Div([
-    #     html.H3('Patient Comparison'),
-    #     html.Label('Select Patient:'),
-    #     dcc.Dropdown(
-    #         id='patient-selector',
-    #         options=[],
-    #         value=None
-    #     )
-    # ]),
+]),
 
 
 # Update column selectors based on uploaded data
@@ -272,7 +261,8 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
     _, columns_medical = preprocess_data(df_medical)
 
     options = [{'label': col, 'value': col} for col in columns_medical]
-    procedures = [{'label': procedure_code, 'value': procedure_code} for  procedure_code in df_medical['procedure_code'].unique()]
+    procedures = [{'label': procedure_code, 'value': procedure_code}
+                  for  procedure_code in df_medical['procedure_code'].unique()]
 
     # patient_options = [{'label'f: f'Patient {i}', 'value': i} for i in df_medical.index]
     table_medical = dash_table.DataTable(
@@ -324,7 +314,9 @@ def update_columns(contents_medical, contents_synth, filename_medical, filename_
      Input('upload-data-synth', 'contents'),
      Input('upload-data-synth', 'filename')]
 )
-def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename_medical, contents_synth, filename_synth):
+def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical,
+                  filename_medical, contents_synth, filename_synth):
+    '''Create the first section of graphs: histo,pie,box,scatter with statistics'''
     if not x_var:
         return {}, [], [], {}, [], [], "Please select an x-axis variable."
 
@@ -342,42 +334,46 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename
     synthetic_summary_stats = df_synthetic[selected_vars].describe(include='all')
 
     real_summary_stats_data = real_summary_stats.reset_index().to_dict('records')
-    real_summary_stats_columns = [{"name": i, "id": i} for i in real_summary_stats.reset_index().columns]
+    real_summary_stats_columns = [{"name": i, "id": i}
+                                  for i in real_summary_stats.reset_index().columns]
 
     synthetic_summary_stats_data = synthetic_summary_stats.reset_index().to_dict('records')
-    synthetic_summary_stats_columns = [{"name": i, "id": i} for i in synthetic_summary_stats.reset_index().columns]
+    synthetic_summary_stats_columns = [{"name": i, "id": i}
+                                       for i in synthetic_summary_stats.reset_index().columns]
 
     # Extract categories from real data for categorical variables
-    category_orders = {var: df_real[var].astype('category').cat.categories.tolist() for var in selected_vars if df_real[var].dtype.name == 'category' or df_real[var].dtype.name == 'object'}
+    category_orders = {var: df_real[var].astype('category').cat.categories.tolist()
+                       for var in selected_vars if df_real[var].dtype.name == 'category' or df_real[var].dtype.name == 'object'}
 
 # Create the plot
     fig_real, fig_synthetic = None, None
-    phems_colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF']
+    phems_colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF'] # used to be:color_sequence) 
+
 
     if plot_type == 'histogram':
         if y_var:
-            fig_real = px.histogram(df_real, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', category_orders=category_orders, color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.histogram(df_synthetic, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', category_orders=category_orders , color_discrete_sequence=phems_colors) #, color_discrete_sequence=color_sequence)
+            fig_real = px.histogram(df_real, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', category_orders=category_orders, color_discrete_sequence=phems_colors)
+            fig_synthetic = px.histogram(df_synthetic, x=x_var, color=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', category_orders=category_orders , color_discrete_sequence=phems_colors)
         else:
-            fig_real = px.histogram(df_real, x=x_var, title=f'{x_var} Distribution (Real)', category_orders=category_orders, color_discrete_sequence=phems_colors) #, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.histogram(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', category_orders=category_orders, color_discrete_sequence=phems_colors) #, color_discrete_sequence=color_sequence)
+            fig_real = px.histogram(df_real, x=x_var, title=f'{x_var} Distribution (Real)', category_orders=category_orders, color_discrete_sequence=phems_colors)
+            fig_synthetic = px.histogram(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', category_orders=category_orders, color_discrete_sequence=phems_colors)
     elif plot_type == 'pie':
-        fig_real = px.pie(df_real, names=x_var, title=f'{x_var} Distribution (Real)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
-        fig_synthetic = px.pie(df_synthetic, names=x_var, title=f'{x_var} Distribution (Synthetic)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
+        fig_real = px.pie(df_real, names=x_var, title=f'{x_var} Distribution (Real)', color_discrete_sequence=phems_colors)
+        fig_synthetic = px.pie(df_synthetic, names=x_var, title=f'{x_var} Distribution (Synthetic)', color_discrete_sequence=phems_colors)
     elif plot_type == 'box':
         if y_var:
-            fig_real = px.box(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', color_discrete_sequence=phems_colors )#, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.box(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
+            fig_real = px.box(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Real)', color_discrete_sequence=phems_colors )
+            fig_synthetic = px.box(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Distribution (Synthetic)', color_discrete_sequence=phems_colors)
         else:
-            fig_real = px.box(df_real, x=x_var, title=f'{x_var} Distribution (Real)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.box(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
+            fig_real = px.box(df_real, x=x_var, title=f'{x_var} Distribution (Real)', color_discrete_sequence=phems_colors)
+            fig_synthetic = px.box(df_synthetic, x=x_var, title=f'{x_var} Distribution (Synthetic)', color_discrete_sequence=phems_colors)
     elif plot_type == 'scatter':
         if y_var:
-            fig_real = px.scatter(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Real)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.scatter(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Synthetic)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
+            fig_real = px.scatter(df_real, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Real)', color_discrete_sequence=phems_colors)
+            fig_synthetic = px.scatter(df_synthetic, x=x_var, y=y_var, title=f'{x_var} vs {y_var} Scatter Plot (Synthetic)', color_discrete_sequence=phems_colors)
         else:
-            fig_real = px.scatter(df_real, x=x_var, title=f'{x_var} Scatter Plot (Real)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
-            fig_synthetic = px.scatter(df_synthetic, x=x_var, title=f'{x_var} Scatter Plot (Synthetic)', color_discrete_sequence=phems_colors)#, color_discrete_sequence=color_sequence)
+            fig_real = px.scatter(df_real, x=x_var, title=f'{x_var} Scatter Plot (Real)', color_discrete_sequence=phems_colors)
+            fig_synthetic = px.scatter(df_synthetic, x=x_var, title=f'{x_var} Scatter Plot (Synthetic)', color_discrete_sequence=phems_colors)
 
 # Perform statistical test
     if stat_test and len(selected_vars) == 1:
@@ -394,7 +390,7 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename
             real_freq = df_real[x_var].value_counts()
             synthetic_freq = df_synthetic[x_var].value_counts()
             observed = np.array([real_freq, synthetic_freq])
-            stat, p_value, dof, expected = chi2_contingency(observed, correction=False)
+            stat, p_value, _, _ = chi2_contingency(observed, correction=False)     # _1 = dof, _2 = expected
             test_result = f'Chi-Square Test:\nStatistic: {stat}\nP-value: {p_value}'
         else:
             test_result = "Unsupported variable type for statistical test."
@@ -416,25 +412,21 @@ def update_graphs(x_var, y_var, plot_type, stat_test, contents_medical, filename
      Input('main-proc-toggle', 'on')]
 )
 def update_patient_comparison_boxplot(procedures, columns, contents, synth_contents,filename, synth_filename, on):
-    '''Docstring problem exists again'''
+    '''Docstring problem exists again: Create the box-plots'''
 
-
-    colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF']
+    phems_colors = ['#4e8ca9', '#D18E46', '#5BB6AB', '#A6CFDF']
 
     if not contents or not synth_contents:
         raise PreventUpdate
+
     df_real = load_data(contents, filename)
     df_synthetic = load_data(synth_contents, synth_filename)
-
-    # print(len(df_real), len(df_synthetic))
 
     if not procedures or not columns:
         raise PreventUpdate
 
-    fig_medical = go.Figure()
-
-
     # Create boxplot 1:
+    fig_medical = go.Figure()
     for i, column in enumerate(columns):
         y_data, x_names = create_plot_data(data=df_real, procedures=procedures, column=column, main_proc=on)
         fig_medical.add_trace(go.Box(
@@ -442,43 +434,35 @@ def update_patient_comparison_boxplot(procedures, columns, contents, synth_conte
             y= y_data,
             x= [(name[:14] + '...' + name[-14:]) if len(name) > 32 else name for name in x_names],
             name= f'{column}',
-            marker_color= colors[i]
+            marker_color= phems_colors[i]
         ))
-
     fig_medical.update_layout(
         yaxis_title='Duration in minutes',
         xaxis_title='Procedure codes',
-        boxmode='group'  ,           # group together boxes of the different traces for each value of x
+        boxmode='group'  ,                  # group together boxes of the different traces for each value of x
         height=600
     )
 
 # Create boxplot 2:
     fig_synth = go.Figure()
-
     for i, column in enumerate(columns):
         y_data, x_names = create_plot_data(data=df_synthetic, procedures=procedures, column=column, main_proc=on)
         fig_synth.add_trace(go.Box(
             boxpoints='all',
             y= y_data,
-            x= [(name[:14] + '...' + name[-14:]) if len(name) > 40 else name for name in x_names],
+            x= [(name[:14] + '...' + name[-14:]) if len(name) > 40 else name for name in x_names],          #Shorten the names for plot visibility
             name= f'{column}',
-            marker_color= colors[i],
+            marker_color= phems_colors[i],
         ))
-
-    # fig_synth.update_xaxes(ticklabeloverflow='allow',)
     fig_synth.update_layout(
         yaxis_title='Duration in minutes',
         xaxis_title='Procedure codes',
-        boxmode='group',          # group together boxes of the different traces for each value of x
+        boxmode='group',                        # group together boxes of the different traces for each value of x
         height=600
     )
-
-
     return fig_medical, fig_synth
 
 
 # Step 4: Run the Dash Application
-
 if __name__ == '__main__':
-    port = find_available_port()
-    app.run_server(debug=True, port=port)
+    app.run_server(debug=True, port= find_available_port())
