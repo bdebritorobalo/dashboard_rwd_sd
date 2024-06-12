@@ -2,13 +2,13 @@ from tableone import TableOne
 import pandas as pd
 
 # Load the dataset using pandas
-file_path = '/workspaces/dashboard_rwd_sd/dataset/breast_cancer_survival.csv'
+file_path = '/home/bruno@mydre.org/dashboard/dashboard_rwd_sd/dataset/20240603_data_processed.csv'
 data = pd.read_csv(file_path)
 
 # Update these column names based on your dataset's actual columns
-columns = ['Age', 'Gender', 'Protein1', 'HER2 status', 'Patient_Status']
-categorical = ['Gender', 'Patient_Status']
-continuous = ['Age', 'Protein1']
+columns = ['main-procedure', 'procedure_duration', 'procedure_age', 'postop_status_sternum', 'ECC_duration', 'AoX_duration', 'DHCA_duration', 'ACP_duration']
+categorical = ['main-procedure', 'postop_status_sternum','HER2 postop_status_sternum']
+continuous = ['ECC_duration', 'AoX_duration', 'DHCA_duration', 'ACP_duration', 'procedure_age']
 
 # Check if specified columns exist in the dataframe
 missing_columns = [col for col in columns if col not in data.columns]
