@@ -7,7 +7,11 @@ Dashboard consortium meeting 17-07-2024.
 
 ### Background
 
-This section will contain the abstract written by Bruno, highlighting the goal of this dashboard including some research questions to make the mini project objective.
+Leveraging synthetic and real-world data for enhanced dashboards: a demonstration using cohort of cardiothoracic surgery patients 
+
+Rationale: Access to comprehensive and diverse healthcare datasets is critical for advancing data-driven insights and decision-making in medical practice. However, privacy concerns, ethical considerations, and stringent data security regulations often limit the availability of such data, posing significant challenges for healthcare research and development. This study aims to address these challenges by exploring the use of synthetic data in conjunction with real-world data to create comprehensive dashboards that offer descriptive insights into patient demographics and clinical metrics. 
+
+Objective: The primary objective of this study is to design and implement dashboards that utilize both synthetic and real-world data to visualize key patient metrics. Specifically, the dashboards will provide insights into average patient age, operation duration, and the number of open sternums for various surgeries. Additionally, they will enable comparisons between individual patients and the cohort average for different procedures. 
 
 ### Research questions
 
