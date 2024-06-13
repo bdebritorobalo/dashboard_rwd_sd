@@ -6,7 +6,7 @@ file_path = '/home/bruno@mydre.org/dashboard/dashboard_rwd_sd/dataset/20240603_d
 data = pd.read_csv(file_path)
 
 # Update these column names based on your dataset's actual columns
-columns = ['main-procedure', 'procedure_duration', 'procedure_age', 'postop_status_sternum', 'ECC_duration', 'AoX_duration', 'DHCA_duration', 'ACP_duration']
+columns = ['main_procedure', 'procedure_duration', 'procedure_age', 'postop_status_sternum', 'ECC_duration', 'AoX_duration', 'DHCA_duration', 'ACP_duration']
 categorical = ['main-procedure', 'postop_status_sternum','HER2 postop_status_sternum']
 continuous = ['ECC_duration', 'AoX_duration', 'DHCA_duration', 'ACP_duration', 'procedure_age']
 
